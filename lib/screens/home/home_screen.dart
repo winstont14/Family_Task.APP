@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/colors.dart';
@@ -410,6 +411,7 @@ class _FamilySheetState extends State<_FamilySheet> {
   late final TextEditingController _familyNameCtrl;
   late final TextEditingController _pinCtrl;
   String _selectedRole = 'child';
+  bool _pinError = false;
 
   @override
   void initState() {
@@ -433,6 +435,13 @@ class _FamilySheetState extends State<_FamilySheet> {
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) return;
     final pin = _pinCtrl.text.trim();
+
+    if (pin.isNotEmpty && pin.length != 4) {
+      setState(() => _pinError = true);
+      return;
+    }
+
+    setState(() => _pinError = false);
     context.read<FamilyProvider>().addMember(
           name,
           _selectedRole,
@@ -646,7 +655,11 @@ class _FamilySheetState extends State<_FamilySheet> {
                   child: TextField(
                     controller: _pinCtrl,
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                    ],
                     maxLength: 4,
+                    onChanged: (_) => setState(() => _pinError = false),
                     style: GoogleFonts.poppins(
                         fontSize: 15, color: AppColors.text),
                     decoration: InputDecoration(
@@ -654,11 +667,36 @@ class _FamilySheetState extends State<_FamilySheet> {
                       hintStyle: GoogleFonts.poppins(
                           fontSize: 13, color: AppColors.subtitle),
                       filled: true,
-                      fillColor: AppColors.background,
+                      fillColor: _pinError
+                          ? Colors.redAccent.withValues(alpha: 0.06)
+                          : AppColors.background,
                       counterText: '',
+                      errorText: _pinError ? '4 digits' : null,
+                      errorStyle: GoogleFonts.poppins(
+                          fontSize: 10,
+                          color: Colors.redAccent,
+                          fontWeight: FontWeight.w500),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
+                        borderSide: _pinError
+                            ? const BorderSide(
+                                color: Colors.redAccent, width: 1.5)
+                            : BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: _pinError
+                            ? const BorderSide(
+                                color: Colors.redAccent, width: 1.5)
+                            : BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: _pinError
+                            ? const BorderSide(
+                                color: Colors.redAccent, width: 2)
+                            : const BorderSide(
+                                color: AppColors.primary, width: 2),
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 12),

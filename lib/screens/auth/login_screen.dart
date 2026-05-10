@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/colors.dart';
@@ -346,6 +347,7 @@ class _AdminSetupScreenState extends State<_AdminSetupScreen> {
   final _nameCtrl = TextEditingController();
   final _pinCtrl = TextEditingController();
   bool _obscurePin = true;
+  bool _pinError = false;
 
   @override
   void dispose() {
@@ -358,13 +360,20 @@ class _AdminSetupScreenState extends State<_AdminSetupScreen> {
   Future<void> _create() async {
     final familyName = _familyNameCtrl.text.trim();
     final name = _nameCtrl.text.trim();
+    final pin = _pinCtrl.text.trim();
+
     if (familyName.isEmpty || name.isEmpty) return;
+
+    if (pin.isNotEmpty && pin.length != 4) {
+      setState(() => _pinError = true);
+      return;
+    }
+
+    setState(() => _pinError = false);
 
     final family = context.read<FamilyProvider>();
     final auth = context.read<AuthProvider>();
-
     await family.setFamilyName(familyName);
-    final pin = _pinCtrl.text.trim();
     final member = await family.addMember(
       name,
       'admin',
@@ -415,15 +424,21 @@ class _AdminSetupScreenState extends State<_AdminSetupScreen> {
                 textCapitalization: TextCapitalization.words,
               ),
               const SizedBox(height: 24),
-              _Label('PIN (optional)'),
+              _Label('PIN (optional — must be 4 digits if set)'),
               const SizedBox(height: 8),
               _SetupField(
                 controller: _pinCtrl,
                 hint: '4-digit PIN',
                 icon: Icons.lock_outline_rounded,
                 keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                ],
                 maxLength: 4,
                 obscureText: _obscurePin,
+                errorText:
+                    _pinError ? 'PIN must be exactly 4 digits' : null,
+                onChanged: (_) => setState(() => _pinError = false),
                 suffix: IconButton(
                   icon: Icon(
                     _obscurePin
@@ -490,40 +505,56 @@ class _SetupField extends StatelessWidget {
   final String hint;
   final IconData icon;
   final TextInputType keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
   final int? maxLength;
   final bool obscureText;
   final Widget? suffix;
   final TextCapitalization textCapitalization;
+  final String? errorText;
+  final ValueChanged<String>? onChanged;
 
   const _SetupField({
     required this.controller,
     required this.hint,
     required this.icon,
     this.keyboardType = TextInputType.text,
+    this.inputFormatters,
     this.maxLength,
     this.obscureText = false,
     this.suffix,
     this.textCapitalization = TextCapitalization.none,
+    this.errorText,
+    this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
+    final hasError = errorText != null;
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       maxLength: maxLength,
       obscureText: obscureText,
       textCapitalization: textCapitalization,
+      onChanged: onChanged,
       style: GoogleFonts.poppins(fontSize: 16, color: AppColors.text),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle:
             GoogleFonts.poppins(fontSize: 15, color: AppColors.subtitle),
-        prefixIcon: Icon(icon, color: AppColors.subtitle, size: 20),
+        prefixIcon: Icon(icon,
+            color: hasError ? Colors.redAccent : AppColors.subtitle,
+            size: 20),
         suffixIcon: suffix,
         filled: true,
         fillColor: Colors.white,
         counterText: '',
+        errorText: errorText,
+        errorStyle: GoogleFonts.poppins(
+            fontSize: 12,
+            color: Colors.redAccent,
+            fontWeight: FontWeight.w500),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(
@@ -531,12 +562,16 @@ class _SetupField extends StatelessWidget {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(
-              color: AppColors.subtitle.withValues(alpha: 0.2)),
+          borderSide: hasError
+              ? const BorderSide(color: Colors.redAccent, width: 1.5)
+              : BorderSide(
+                  color: AppColors.subtitle.withValues(alpha: 0.2)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderSide: hasError
+              ? const BorderSide(color: Colors.redAccent, width: 2)
+              : const BorderSide(color: AppColors.primary, width: 2),
         ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
