@@ -20,19 +20,22 @@ class FamilyMemberAdapter extends TypeAdapter<FamilyMember> {
       id: fields[0] as String,
       name: fields[1] as String,
       role: fields[2] as String,
+      pin: fields[3] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, FamilyMember obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(4)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
       ..write(obj.name)
       ..writeByte(2)
-      ..write(obj.role);
+      ..write(obj.role)
+      ..writeByte(3)
+      ..write(obj.pin);
   }
 
   @override

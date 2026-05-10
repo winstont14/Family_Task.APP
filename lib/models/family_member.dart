@@ -11,11 +11,15 @@ class FamilyMember extends HiveObject {
   String name;
 
   @HiveField(2)
-  String role; // 'parent' or 'child'
+  String role; // 'admin' | 'parent' | 'child'
+
+  @HiveField(3)
+  String? pin; // 4-digit PIN, null = no PIN required
 
   FamilyMember({
     required this.id,
     required this.name,
     this.role = 'child',
+    this.pin,
   });
 }

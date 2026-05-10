@@ -4,4 +4,5 @@ class AppConstants {
   static const String membersBox = 'members';
   static const String usernameKey = 'username';
   static const String familyNameKey = 'familyName';
+  static const String currentUserKey = 'currentUserId';
 }

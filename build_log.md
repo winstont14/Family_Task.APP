@@ -141,3 +141,32 @@ Created with: commands, architecture overview, data flow, and key decisions.
 - `assignedTo` stores member **id** (not name) so renames won't corrupt tasks; `FamilyProvider.findById` resolves display name at render time
 - Member chip filter resets to "All" automatically when the filtered member is deleted
 - `_FamilySheet` is scrollable with `maxHeight: 88vh` to handle large families on small screens
+
+---
+
+### Step 8 — Login System + Role-Based Access (v3.0.0) — 2026-05-10
+
+**Requirement:** Add login system to handle multiple members with roles: Admin, Parent, Child.
+
+**New files:**
+| File | Purpose |
+|------|---------|
+| `lib/providers/auth_provider.dart` | Session management; `login`, `logout`, `load` (restores session from Hive on cold start); role helpers `isAdmin`, `isParent`, `isChild`, `canManageTasks`, `canManageFamily` |
+| `lib/screens/auth/login_screen.dart` | Full login flow: `LoginScreen` (member grid), `_AdminSetupScreen` (first-run, creates admin + family name), `_MemberTile`, `_PinDialog` (4-digit numpad), `_DigitButton`, `_RoleBadge`, `_SetupField` |
+
+**Files changed:**
+- `lib/models/family_member.dart` — added `@HiveField(3) String? pin` (4-digit login PIN, nullable = no PIN required)
+- `lib/models/family_member.g.dart` — adapter updated to 4 fields (backward-compat: old 3-field records read fine, `fields[3]` → null)
+- `lib/core/utils/constants.dart` — added `currentUserKey = 'currentUserId'`
+- `lib/providers/family_provider.dart` — `addMember` now accepts `{String? pin}` and returns the created `FamilyMember`; added `updateMemberPin`, `updateMemberRole`; `hasAdmin` getter; role strings extended to 'admin' | 'parent' | 'child'
+- `lib/screens/home/home_screen.dart` — FAB hidden for Child; Manage button hidden for non-Admin; `_FamilyHeader` shows role pill + logout icon; `_FamilySheet` role dropdown includes Admin; Children auto-filtered to their own tasks via `effectiveMemberId`
+- `lib/widgets/todo_card.dart` — edit/delete buttons and `Dismissible` swipe conditioned on `auth.canManageTasks`; children see toggle-only cards
+- `lib/main.dart` — added `AuthProvider()..load()` to MultiProvider; `home` uses `Consumer<AuthProvider>` to route `LoginScreen` ↔ `HomeScreen`
+
+**Key decisions:**
+- PIN stored as plain String (4 digits) in Hive — acceptable for single-device family app
+- Session persisted as member ID in `settings` box under `currentUserKey`; `AuthProvider.load()` reads directly from Hive boxes without depending on `FamilyProvider` (avoids circular dependency)
+- Cold-start session restoration: if saved ID not found in members box (member deleted), `_currentUser` is null → login screen shows automatically
+- Role hierarchy enforced in UI only (Flutter is not a security boundary for a local app)
+- Admin setup screen shown when `!family.hasAdmin` — first time ever, or after all admins deleted
+- Child view: filter chips hidden (redundant), FAB hidden, edit/delete stripped from cards; toggle still available on their tasks

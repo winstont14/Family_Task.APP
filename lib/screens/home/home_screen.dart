@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/colors.dart';
 import '../../models/todo_model.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/family_provider.dart';
 import '../../providers/todo_provider.dart';
 import '../../providers/user_provider.dart';
@@ -24,9 +25,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
     final family = context.watch<FamilyProvider>();
 
-    // Reset filter if the selected member was deleted
+    // Children always see their own tasks only
+    final effectiveMemberId =
+        auth.isChild ? auth.currentUser?.id : _selectedMemberId;
+
+    // Reset filter if selected member was deleted
     if (_selectedMemberId != null &&
         family.findById(_selectedMemberId!) == null) {
       _selectedMemberId = null;
@@ -38,48 +44,51 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _FamilyHeader(
-              onManageFamily: _showFamilySheet,
-              onEditName: _showUsernameSheet,
+              onManageFamily: auth.canManageFamily ? _showFamilySheet : null,
+              onLogout: _logout,
             ),
             Consumer<TodoProvider>(
               builder: (context, todos, _) {
                 final active =
-                    todos.activeTodosForMember(_selectedMemberId);
+                    todos.activeTodosForMember(effectiveMemberId);
                 final done =
-                    todos.completedTodosForMember(_selectedMemberId);
+                    todos.completedTodosForMember(effectiveMemberId);
                 final total = active.length + done.length;
                 if (total == 0) return const SizedBox.shrink();
                 return Padding(
                   padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
                   child: ProgressWidget(
-                    completed: done.length,
-                    total: total,
-                  ),
+                      completed: done.length, total: total),
                 );
               },
             ),
-            if (family.members.isNotEmpty)
+            // Member filter chips — only Admin and Parent see them
+            if (auth.canManageTasks && family.members.isNotEmpty)
               _MemberFilterChips(
                 selectedMemberId: _selectedMemberId,
                 onSelect: (id) => setState(() => _selectedMemberId = id),
-                onManage: _showFamilySheet,
+                onManage: auth.canManageFamily ? _showFamilySheet : null,
               ),
             Expanded(
-              child: _TaskList(selectedMemberId: _selectedMemberId),
+              child: _TaskList(effectiveMemberId: effectiveMemberId),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openAddTodo,
-        icon: const Icon(Icons.add_rounded, size: 28),
-        label: Text(
-          'Add Task',
-          style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-      ),
+      // FAB only for Admin and Parent
+      floatingActionButton: auth.canManageTasks
+          ? FloatingActionButton.extended(
+              onPressed: _openAddTodo,
+              icon: const Icon(Icons.add_rounded, size: 28),
+              label: Text(
+                'Add Task',
+                style: GoogleFonts.poppins(
+                    fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            )
+          : null,
     );
   }
 
@@ -109,38 +118,30 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showUsernameSheet() {
-    final user = context.read<UserProvider>();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => ChangeNotifierProvider.value(
-        value: user,
-        child: const _UsernameSheet(),
-      ),
-    );
+  void _logout() {
+    context.read<AuthProvider>().logout();
   }
 }
 
 // ─────────────────────────── Family Header ───────────────────────────
 
 class _FamilyHeader extends StatelessWidget {
-  final VoidCallback onManageFamily;
-  final VoidCallback onEditName;
+  final VoidCallback? onManageFamily;
+  final VoidCallback onLogout;
 
   const _FamilyHeader({
     required this.onManageFamily,
-    required this.onEditName,
+    required this.onLogout,
   });
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<UserProvider>();
+    final auth = context.watch<AuthProvider>();
     final family = context.watch<FamilyProvider>();
+    final user = auth.currentUser;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 28, 16, 8),
+      padding: const EdgeInsets.fromLTRB(24, 24, 12, 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -156,39 +157,38 @@ class _FamilyHeader extends StatelessWidget {
                       Text(
                         '${family.familyName} 👨‍👩‍👧‍👦',
                         style: GoogleFonts.poppins(
-                          fontSize: 22,
+                          fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: AppColors.text,
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      const Icon(Icons.settings_outlined,
-                          size: 16, color: AppColors.subtitle),
+                      if (onManageFamily != null) ...[
+                        const SizedBox(width: 6),
+                        const Icon(Icons.settings_outlined,
+                            size: 15, color: AppColors.subtitle),
+                      ],
                     ],
                   ),
                 ),
                 const SizedBox(height: 4),
-                GestureDetector(
-                  onTap: onEditName,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Hello, ${user.displayName} 👋',
-                        style: GoogleFonts.poppins(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.text,
-                        ),
+                Row(
+                  children: [
+                    Text(
+                      'Hello, ${user?.name ?? 'there'} 👋',
+                      style: GoogleFonts.poppins(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.text,
                       ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.edit_outlined,
-                          size: 14, color: AppColors.subtitle),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 8),
+                    if (user != null) _RolePill(role: user.role),
+                  ],
                 ),
                 Text(
-                  'What do you want to do today?',
+                  auth.isChild
+                      ? 'Here are your tasks!'
+                      : 'What do you want to do today?',
                   style: GoogleFonts.poppins(
                       fontSize: 13, color: AppColors.subtitle),
                 ),
@@ -196,16 +196,43 @@ class _FamilyHeader extends StatelessWidget {
             ),
           ),
           IconButton(
-            onPressed: onManageFamily,
-            icon: CircleAvatar(
-              radius: 20,
-              backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-              child: const Icon(Icons.people_outline_rounded,
-                  color: AppColors.primary, size: 22),
-            ),
-            tooltip: 'Manage Family',
+            onPressed: onLogout,
+            icon: const Icon(Icons.logout_rounded,
+                color: AppColors.subtitle, size: 22),
+            tooltip: 'Log out',
+            constraints:
+                const BoxConstraints(minWidth: 48, minHeight: 48),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _RolePill extends StatelessWidget {
+  final String role;
+  const _RolePill({required this.role});
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, bg) = switch (role) {
+      'admin' => ('👑 Admin', const Color(0xFFFFF3CD)),
+      'parent' => ('👔 Parent', const Color(0xFFDCEEFD)),
+      _ => ('🌟 Child', const Color(0xFFD4F1E4)),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.poppins(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: AppColors.text,
+        ),
       ),
     );
   }
@@ -216,12 +243,12 @@ class _FamilyHeader extends StatelessWidget {
 class _MemberFilterChips extends StatelessWidget {
   final String? selectedMemberId;
   final ValueChanged<String?> onSelect;
-  final VoidCallback onManage;
+  final VoidCallback? onManage;
 
   const _MemberFilterChips({
     required this.selectedMemberId,
     required this.onSelect,
-    required this.onManage,
+    this.onManage,
   });
 
   @override
@@ -250,34 +277,36 @@ class _MemberFilterChips extends StatelessWidget {
                 onTap: () => onSelect(m.id),
               );
             }),
-            const SizedBox(width: 4),
-            GestureDetector(
-              onTap: onManage,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: AppColors.subtitle.withValues(alpha: 0.3),
+            if (onManage != null) ...[
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: onManage,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: AppColors.subtitle.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.edit_outlined,
+                          size: 14, color: AppColors.subtitle),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Manage',
+                        style: GoogleFonts.poppins(
+                            fontSize: 13, color: AppColors.subtitle),
+                      ),
+                    ],
                   ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.edit_outlined,
-                        size: 14, color: AppColors.subtitle),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Manage',
-                      style: GoogleFonts.poppins(
-                          fontSize: 13, color: AppColors.subtitle),
-                    ),
-                  ],
-                ),
               ),
-            ),
+            ],
           ],
         ),
       ),
@@ -332,17 +361,18 @@ class _FilterChip extends StatelessWidget {
 // ───────────────────────────── Task List ─────────────────────────────
 
 class _TaskList extends StatelessWidget {
-  final String? selectedMemberId;
+  final String? effectiveMemberId;
 
-  const _TaskList({required this.selectedMemberId});
+  const _TaskList({required this.effectiveMemberId});
 
   @override
   Widget build(BuildContext context) {
     return Consumer<TodoProvider>(
       builder: (context, provider, _) {
-        final active = provider.activeTodosForMember(selectedMemberId);
+        final active =
+            provider.activeTodosForMember(effectiveMemberId);
         final completed =
-            provider.completedTodosForMember(selectedMemberId);
+            provider.completedTodosForMember(effectiveMemberId);
 
         if (active.isEmpty && completed.isEmpty) {
           return const EmptyState();
@@ -366,125 +396,6 @@ class _TaskList extends StatelessWidget {
   }
 }
 
-// ──────────────────────────── Username Sheet ──────────────────────────────
-
-class _UsernameSheet extends StatefulWidget {
-  const _UsernameSheet();
-
-  @override
-  State<_UsernameSheet> createState() => _UsernameSheetState();
-}
-
-class _UsernameSheetState extends State<_UsernameSheet> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller =
-        TextEditingController(text: context.read<UserProvider>().username);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _save() {
-    context.read<UserProvider>().setUsername(_controller.text);
-    Navigator.pop(context);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.subtitle.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Your name',
-              style: GoogleFonts.poppins(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: AppColors.text,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Used in the greeting on the home screen.',
-              style: GoogleFonts.poppins(
-                  fontSize: 14, color: AppColors.subtitle),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _controller,
-              autofocus: true,
-              textCapitalization: TextCapitalization.words,
-              style: GoogleFonts.poppins(
-                  fontSize: 18, color: AppColors.text),
-              decoration: InputDecoration(
-                hintText: 'Enter your name',
-                hintStyle: GoogleFonts.poppins(
-                    fontSize: 16, color: AppColors.subtitle),
-                filled: true,
-                fillColor: AppColors.background,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 14),
-              ),
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _save(),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 52,
-              child: ElevatedButton(
-                onPressed: _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  'Save',
-                  style: GoogleFonts.poppins(
-                      fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 // ──────────────────────────── Family Sheet ────────────────────────────────
 
 class _FamilySheet extends StatefulWidget {
@@ -495,36 +406,47 @@ class _FamilySheet extends StatefulWidget {
 }
 
 class _FamilySheetState extends State<_FamilySheet> {
-  late final TextEditingController _nameController;
-  late final TextEditingController _familyNameController;
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _familyNameCtrl;
+  late final TextEditingController _pinCtrl;
   String _selectedRole = 'child';
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController();
-    _familyNameController = TextEditingController(
+    _nameCtrl = TextEditingController();
+    _pinCtrl = TextEditingController();
+    _familyNameCtrl = TextEditingController(
       text: context.read<FamilyProvider>().familyName,
     );
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _familyNameController.dispose();
+    _nameCtrl.dispose();
+    _pinCtrl.dispose();
+    _familyNameCtrl.dispose();
     super.dispose();
   }
 
   void _addMember() {
-    final name = _nameController.text.trim();
+    final name = _nameCtrl.text.trim();
     if (name.isEmpty) return;
-    context.read<FamilyProvider>().addMember(name, _selectedRole);
-    _nameController.clear();
+    final pin = _pinCtrl.text.trim();
+    context.read<FamilyProvider>().addMember(
+          name,
+          _selectedRole,
+          pin: pin.isEmpty ? null : pin,
+        );
+    _nameCtrl.clear();
+    _pinCtrl.clear();
     FocusScope.of(context).unfocus();
   }
 
   void _saveFamilyName() {
-    context.read<FamilyProvider>().setFamilyName(_familyNameController.text);
+    context
+        .read<FamilyProvider>()
+        .setFamilyName(_familyNameCtrl.text);
     FocusScope.of(context).unfocus();
   }
 
@@ -568,18 +490,16 @@ class _FamilySheetState extends State<_FamilySheet> {
               ),
             ),
             const SizedBox(height: 14),
-
-            // Family name row
             Row(
               children: [
                 Expanded(
                   child: TextField(
-                    controller: _familyNameController,
+                    controller: _familyNameCtrl,
                     textCapitalization: TextCapitalization.words,
                     style: GoogleFonts.poppins(
                         fontSize: 16, color: AppColors.text),
                     decoration: InputDecoration(
-                      hintText: 'Family name (e.g. Smith Family)',
+                      hintText: 'Family name',
                       hintStyle: GoogleFonts.poppins(
                           fontSize: 14, color: AppColors.subtitle),
                       filled: true,
@@ -606,16 +526,14 @@ class _FamilySheetState extends State<_FamilySheet> {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: Text(
-                      'Save',
-                      style: GoogleFonts.poppins(
-                          fontSize: 14, fontWeight: FontWeight.w600),
-                    ),
+                    child: Text('Save',
+                        style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600)),
                   ),
                 ),
               ],
             ),
-
             const SizedBox(height: 24),
             Text(
               'Family Members',
@@ -626,12 +544,11 @@ class _FamilySheetState extends State<_FamilySheet> {
               ),
             ),
             const SizedBox(height: 8),
-
             if (family.members.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Text(
-                  'No members yet. Add members below to assign tasks.',
+                  'No members yet. Add members below.',
                   style: GoogleFonts.poppins(
                       fontSize: 14, color: AppColors.subtitle),
                 ),
@@ -640,11 +557,12 @@ class _FamilySheetState extends State<_FamilySheet> {
               ...family.members.map((m) {
                 final color = Color(family.colorValueForMember(m.id));
                 return ListTile(
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 0, vertical: 2),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 0, vertical: 2),
                   leading: CircleAvatar(
                     radius: 20,
-                    backgroundColor: color.withValues(alpha: 0.18),
+                    backgroundColor:
+                        color.withValues(alpha: 0.18),
                     child: Text(
                       m.name[0].toUpperCase(),
                       style: GoogleFonts.poppins(
@@ -654,27 +572,40 @@ class _FamilySheetState extends State<_FamilySheet> {
                       ),
                     ),
                   ),
-                  title: Text(
-                    m.name,
-                    style: GoogleFonts.poppins(
-                        fontSize: 16, color: AppColors.text),
-                  ),
-                  subtitle: Text(
-                    m.role == 'parent' ? '👑 Parent' : '🌟 Child',
-                    style: GoogleFonts.poppins(
-                        fontSize: 13, color: AppColors.subtitle),
+                  title: Text(m.name,
+                      style: GoogleFonts.poppins(
+                          fontSize: 16, color: AppColors.text)),
+                  subtitle: Row(
+                    children: [
+                      Text(
+                        switch (m.role) {
+                          'admin' => '👑 Admin',
+                          'parent' => '👔 Parent',
+                          _ => '🌟 Child',
+                        },
+                        style: GoogleFonts.poppins(
+                            fontSize: 12,
+                            color: AppColors.subtitle),
+                      ),
+                      if (m.pin != null) ...[
+                        const SizedBox(width: 8),
+                        const Icon(Icons.lock_outline_rounded,
+                            size: 12, color: AppColors.subtitle),
+                      ],
+                    ],
                   ),
                   trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline_rounded,
+                    icon: const Icon(
+                        Icons.delete_outline_rounded,
                         color: AppColors.deleteRed),
-                    onPressed: () =>
-                        context.read<FamilyProvider>().deleteMember(m.id),
+                    onPressed: () => context
+                        .read<FamilyProvider>()
+                        .deleteMember(m.id),
                     constraints: const BoxConstraints(
                         minWidth: 48, minHeight: 48),
                   ),
                 );
               }),
-
             const SizedBox(height: 20),
             Text(
               'Add Member',
@@ -686,18 +617,17 @@ class _FamilySheetState extends State<_FamilySheet> {
             ),
             const SizedBox(height: 8),
             Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
                   child: TextField(
-                    controller: _nameController,
+                    controller: _nameCtrl,
                     textCapitalization: TextCapitalization.words,
                     style: GoogleFonts.poppins(
-                        fontSize: 16, color: AppColors.text),
+                        fontSize: 15, color: AppColors.text),
                     decoration: InputDecoration(
                       hintText: 'Name',
                       hintStyle: GoogleFonts.poppins(
-                          fontSize: 15, color: AppColors.subtitle),
+                          fontSize: 14, color: AppColors.subtitle),
                       filled: true,
                       fillColor: AppColors.background,
                       border: OutlineInputBorder(
@@ -707,44 +637,79 @@ class _FamilySheetState extends State<_FamilySheet> {
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 12),
                     ),
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => _addMember(),
+                    textInputAction: TextInputAction.next,
                   ),
                 ),
                 const SizedBox(width: 8),
+                SizedBox(
+                  width: 80,
+                  child: TextField(
+                    controller: _pinCtrl,
+                    keyboardType: TextInputType.number,
+                    maxLength: 4,
+                    style: GoogleFonts.poppins(
+                        fontSize: 15, color: AppColors.text),
+                    decoration: InputDecoration(
+                      hintText: 'PIN',
+                      hintStyle: GoogleFonts.poppins(
+                          fontSize: 13, color: AppColors.subtitle),
+                      filled: true,
+                      fillColor: AppColors.background,
+                      counterText: '',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
                 DropdownButton<String>(
                   value: _selectedRole,
                   underline: const SizedBox.shrink(),
                   borderRadius: BorderRadius.circular(12),
                   items: [
                     DropdownMenuItem(
-                      value: 'child',
-                      child: Text('Child',
+                      value: 'admin',
+                      child: Text('👑 Admin',
                           style: GoogleFonts.poppins(fontSize: 14)),
                     ),
                     DropdownMenuItem(
                       value: 'parent',
-                      child: Text('Parent',
+                      child: Text('👔 Parent',
+                          style: GoogleFonts.poppins(fontSize: 14)),
+                    ),
+                    DropdownMenuItem(
+                      value: 'child',
+                      child: Text('🌟 Child',
                           style: GoogleFonts.poppins(fontSize: 14)),
                     ),
                   ],
                   onChanged: (v) =>
                       setState(() => _selectedRole = v ?? 'child'),
                 ),
-                const SizedBox(width: 8),
+                const Spacer(),
                 SizedBox(
-                  width: 48,
-                  height: 48,
-                  child: ElevatedButton(
+                  height: 44,
+                  child: ElevatedButton.icon(
                     onPressed: _addMember,
+                    icon: const Icon(Icons.add_rounded, size: 20),
+                    label: Text('Add',
+                        style: GoogleFonts.poppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
-                      padding: EdgeInsets.zero,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Icon(Icons.add_rounded, size: 22),
                   ),
                 ),
               ],

@@ -20,6 +20,7 @@ class FamilyProvider extends ChangeNotifier {
 
   List<FamilyMember> get members => List.unmodifiable(_members);
   String get familyName => _familyName;
+  bool get hasAdmin => _members.any((m) => m.role == 'admin');
 
   int colorValueForMember(String id) {
     final idx = _members.indexWhere((m) => m.id == id);
@@ -43,14 +44,32 @@ class FamilyProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addMember(String name, String role) async {
+  Future<FamilyMember> addMember(String name, String role, {String? pin}) async {
     final member = FamilyMember(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       name: name,
       role: role,
+      pin: pin?.isEmpty == true ? null : pin,
     );
     await _service.addMember(member);
     _members.add(member);
+    notifyListeners();
+    return member;
+  }
+
+  Future<void> updateMemberRole(String id, String role) async {
+    final m = findById(id);
+    if (m == null) return;
+    m.role = role;
+    await m.save();
+    notifyListeners();
+  }
+
+  Future<void> updateMemberPin(String id, String? pin) async {
+    final m = findById(id);
+    if (m == null) return;
+    m.pin = (pin == null || pin.isEmpty) ? null : pin;
+    await m.save();
     notifyListeners();
   }
 

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../core/theme/colors.dart';
 import '../models/todo_model.dart';
+import '../providers/auth_provider.dart';
 import '../providers/family_provider.dart';
 import '../providers/todo_provider.dart';
 import '../screens/add_todo/add_todo_screen.dart';
@@ -22,6 +23,101 @@ class TodoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final canManage = auth.canManageTasks;
+
+    final card = GestureDetector(
+      onLongPress: canManage ? () => _openEdit(context) : null,
+      child: Card(
+        color: _cardColor,
+        elevation: todo.isDone ? 0 : 2,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 48,
+                height: 48,
+                child: Checkbox(
+                  value: todo.isDone,
+                  onChanged: (_) =>
+                      context.read<TodoProvider>().toggleTodo(todo),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      todo.title,
+                      style: GoogleFonts.poppins(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500,
+                        color: todo.isDone
+                            ? AppColors.subtitle
+                            : AppColors.text,
+                        decoration: todo.isDone
+                            ? TextDecoration.lineThrough
+                            : null,
+                        decorationColor: AppColors.subtitle,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        if (todo.assignedTo != null) ...[
+                          _MemberBadge(memberId: todo.assignedTo!),
+                          const SizedBox(width: 8),
+                        ],
+                        if (!todo.isDone && todo.dueDate != null)
+                          Flexible(
+                              child: _CountdownBadge(
+                                  dueDate: todo.dueDate!))
+                        else
+                          Flexible(
+                            child: Text(
+                              _formatDate(todo.createdAt),
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                color: AppColors.subtitle,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              if (canManage && !todo.isDone)
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined,
+                      color: AppColors.subtitle),
+                  onPressed: () => _openEdit(context),
+                  iconSize: 24,
+                  padding: const EdgeInsets.all(12),
+                  constraints:
+                      const BoxConstraints(minWidth: 48, minHeight: 48),
+                ),
+              if (canManage)
+                IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded,
+                      color: AppColors.deleteRed),
+                  onPressed: () => _confirmDelete(context),
+                  iconSize: 24,
+                  padding: const EdgeInsets.all(12),
+                  constraints:
+                      const BoxConstraints(minWidth: 48, minHeight: 48),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    // Only Admin/Parent can swipe-to-delete
+    if (!canManage) return card;
+
     return Dismissible(
       key: Key(todo.id),
       direction: DismissDirection.endToStart,
@@ -37,93 +133,7 @@ class TodoCard extends StatelessWidget {
             color: Colors.white, size: 28),
       ),
       onDismissed: (_) => context.read<TodoProvider>().deleteTodo(todo),
-      child: GestureDetector(
-        onLongPress: () => _openEdit(context),
-        child: Card(
-          color: _cardColor,
-          elevation: todo.isDone ? 0 : 2,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 48,
-                  height: 48,
-                  child: Checkbox(
-                    value: todo.isDone,
-                    onChanged: (_) =>
-                        context.read<TodoProvider>().toggleTodo(todo),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        todo.title,
-                        style: GoogleFonts.poppins(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w500,
-                          color: todo.isDone
-                              ? AppColors.subtitle
-                              : AppColors.text,
-                          decoration: todo.isDone
-                              ? TextDecoration.lineThrough
-                              : null,
-                          decorationColor: AppColors.subtitle,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          if (todo.assignedTo != null) ...[
-                            _MemberBadge(memberId: todo.assignedTo!),
-                            const SizedBox(width: 8),
-                          ],
-                          if (!todo.isDone && todo.dueDate != null)
-                            Flexible(
-                              child: _CountdownBadge(dueDate: todo.dueDate!),
-                            )
-                          else
-                            Flexible(
-                              child: Text(
-                                _formatDate(todo.createdAt),
-                                style: GoogleFonts.poppins(
-                                  fontSize: 13,
-                                  color: AppColors.subtitle,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                if (!todo.isDone)
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined,
-                        color: AppColors.subtitle),
-                    onPressed: () => _openEdit(context),
-                    iconSize: 24,
-                    padding: const EdgeInsets.all(12),
-                    constraints:
-                        const BoxConstraints(minWidth: 48, minHeight: 48),
-                  ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline_rounded,
-                      color: AppColors.deleteRed),
-                  onPressed: () => _confirmDelete(context),
-                  iconSize: 24,
-                  padding: const EdgeInsets.all(12),
-                  constraints:
-                      const BoxConstraints(minWidth: 48, minHeight: 48),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+      child: card,
     );
   }
 
@@ -149,12 +159,14 @@ class TodoCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('Delete task?',
             style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
         content: Text(
           '"${todo.title}"',
-          style: GoogleFonts.poppins(fontSize: 15, color: AppColors.subtitle),
+          style: GoogleFonts.poppins(
+              fontSize: 15, color: AppColors.subtitle),
         ),
         actions: [
           TextButton(
