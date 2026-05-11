@@ -8,6 +8,19 @@ import '../../providers/auth_provider.dart';
 import '../../providers/family_provider.dart';
 import '../../providers/todo_provider.dart';
 
+const List<(String, String)> kTaskTemplates = [
+  ('📚', 'Homework'),
+  ('🛏️', 'Make bed'),
+  ('🧹', 'Clean room'),
+  ('🏃', 'Exercise'),
+  ('🥦', 'Eat veggies'),
+  ('🚿', 'Shower'),
+  ('🐕', 'Walk dog'),
+  ('🗑️', 'Take out trash'),
+  ('🍽️', 'Set the table'),
+  ('🌿', 'Water plants'),
+];
+
 const List<int?> kTaskColors = [
   null,
   0xFFDCEEFD, // sky blue
@@ -158,7 +171,44 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
                         color: AppColors.text,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
+
+                    // ── Quick templates (new task only) ────────────
+                    if (!_isEditing) ...[
+                      Text('Quick templates',
+                          style: GoogleFonts.poppins(
+                              fontSize: 12, color: AppColors.subtitle)),
+                      const SizedBox(height: 8),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: kTaskTemplates.map((t) {
+                            return GestureDetector(
+                              onTap: () => setState(
+                                  () => _titleCtrl.text = '${t.$1} ${t.$2}'),
+                              child: Container(
+                                margin: const EdgeInsets.only(right: 8),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 7),
+                                decoration: BoxDecoration(
+                                  color: AppColors.background,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                      color: AppColors.subtitle
+                                          .withValues(alpha: 0.2)),
+                                ),
+                                child: Text(
+                                  '${t.$1} ${t.$2}',
+                                  style: GoogleFonts.poppins(
+                                      fontSize: 13, color: AppColors.text),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
 
                     // ── Title ──────────────────────────────────────
                     TextField(

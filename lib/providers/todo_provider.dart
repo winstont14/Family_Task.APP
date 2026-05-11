@@ -67,6 +67,22 @@ class TodoProvider extends ChangeNotifier {
     return streak;
   }
 
+  // ── XP & Level system ────────────────────────────────────────────
+  int xpForMember(String? memberId) {
+    final done = memberId == null
+        ? _todos.where((t) => t.isDone)
+        : _todos.where((t) => t.isDone && t.assignedTo == memberId);
+    return done.fold(0, (sum, t) {
+      final stars = t.starRating ?? 0;
+      return sum + (stars > 0 ? stars * 10 : 5);
+    });
+  }
+
+  static int levelFromXp(int xp) => (xp ~/ 100) + 1;
+  static int xpInCurrentLevel(int xp) => xp % 100;
+  static int xpForTask(int? starRating) =>
+      (starRating != null && starRating > 0) ? starRating * 10 : 5;
+
   // ── Weekly completed ──────────────────────────────────────────────
   int get completedThisWeek {
     final now = DateTime.now();

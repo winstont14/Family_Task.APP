@@ -48,11 +48,28 @@ class DashboardView extends StatelessWidget {
       ..removeWhere((t) => t.dueDate == null)
       ..sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
 
+    final pendingCount = todos.suggestedTodos.length;
+    final myXp = isChild
+        ? todos.xpForMember(auth.currentUser?.id)
+        : 0;
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
       children: [
         DateStrip(now: now),
         const SizedBox(height: 16),
+
+        // ── Child: XP / Level card ────────────────────────────────
+        if (isChild) ...[
+          XpLevelCard(xp: myXp),
+          const SizedBox(height: 16),
+        ],
+
+        // ── Parent/Admin: pending approvals ───────────────────────
+        if (!isChild && pendingCount > 0) ...[
+          PendingApprovalsBanner(count: pendingCount),
+          const SizedBox(height: 16),
+        ],
 
         // ── Streak + Weekly Goal ──────────────────────────────────
         Row(

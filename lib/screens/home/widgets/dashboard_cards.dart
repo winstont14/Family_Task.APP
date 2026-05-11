@@ -3,6 +3,158 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/colors.dart';
 import '../../../providers/auth_provider.dart';
+import '../../../providers/todo_provider.dart';
+
+// ── XP / Level card (child only) ─────────────────────────────────────
+
+class XpLevelCard extends StatelessWidget {
+  final int xp;
+  const XpLevelCard({super.key, required this.xp});
+
+  static const _levelTitles = [
+    ('🌱', 'Sprout'),
+    ('⭐', 'Rising Star'),
+    ('🌟', 'Star'),
+    ('💫', 'Super Star'),
+    ('🏆', 'Champion'),
+    ('👑', 'Legend'),
+  ];
+
+  int get _level => TodoProvider.levelFromXp(xp);
+  int get _xpInLevel => TodoProvider.xpInCurrentLevel(xp);
+
+  @override
+  Widget build(BuildContext context) {
+    final idx = (_level - 1).clamp(0, _levelTitles.length - 1);
+    final (emoji, title) = _levelTitles[idx];
+    final ratio = _xpInLevel / 100.0;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF9B8FF5), Color(0xFFFF6B9D)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF9B8FF5).withValues(alpha: 0.35),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 34)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Level $_level · $title',
+                      style: GoogleFonts.poppins(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      '$xp XP total',
+                      style: GoogleFonts.poppins(
+                        fontSize: 12,
+                        color: Colors.white.withValues(alpha: 0.85),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: ratio),
+              duration: const Duration(milliseconds: 1000),
+              curve: Curves.easeOut,
+              builder: (_, v, __) => LinearProgressIndicator(
+                value: v,
+                minHeight: 8,
+                backgroundColor: Colors.white.withValues(alpha: 0.25),
+                valueColor:
+                    const AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '$_xpInLevel / 100 XP · Level ${_level + 1} in ${100 - _xpInLevel} XP',
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              color: Colors.white.withValues(alpha: 0.85),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Pending approvals banner (parent/admin only) ──────────────────────
+
+class PendingApprovalsBanner extends StatelessWidget {
+  final int count;
+  const PendingApprovalsBanner({super.key, required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    if (count == 0) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFAA57).withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+            color: const Color(0xFFFFAA57).withValues(alpha: 0.45)),
+      ),
+      child: Row(
+        children: [
+          const Text('💡', style: TextStyle(fontSize: 22)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$count task${count > 1 ? 's' : ''} waiting for approval',
+                  style: GoogleFonts.poppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFFCC7700),
+                  ),
+                ),
+                Text(
+                  'Open List tab → approve or reject',
+                  style: GoogleFonts.poppins(
+                      fontSize: 11, color: AppColors.subtitle),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.arrow_forward_ios_rounded,
+              size: 14, color: AppColors.subtitle),
+        ],
+      ),
+    );
+  }
+}
 
 // ── Date strip ────────────────────────────────────────────────────────
 
