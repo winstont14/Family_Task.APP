@@ -9,7 +9,7 @@ import '../../providers/user_provider.dart';
 import '../add_todo/add_todo_screen.dart';
 import 'family_sheet.dart';
 import 'views/dashboard_view.dart';
-import 'views/notion_view.dart';
+import 'views/feed_view.dart';
 import 'views/task_list_view.dart';
 import 'widgets/home_header.dart';
 
@@ -71,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     }),
                   ),
                   TaskListView(effectiveMemberId: effectiveMemberId),
-                  if (!isChild) NotionView(onAddTask: _openAddTodo),
+                  if (!isChild) const FeedView(),
                 ],
               ),
             ),
@@ -98,8 +98,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           if (!isChild)
             const BottomNavigationBarItem(
-              icon: Icon(Icons.history_edu_rounded),
-              label: 'Task Log',
+              icon: Icon(Icons.feed_rounded),
+              label: 'Family Feed',
             ),
         ],
       ),
