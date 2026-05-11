@@ -294,31 +294,32 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
                           children: [
                             const SizedBox(height: 14),
                             _FieldLabel(label: 'Assign to'),
-                            const SizedBox(height: 8),
-                            SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
-                                children: [
-                                  _AssignChip(
-                                    label: 'No one',
-                                    isSelected: _assignedTo == null,
-                                    color: AppColors.subtitle,
-                                    onTap: () =>
-                                        setState(() => _assignedTo = null),
-                                  ),
-                                  ...family.members.map((m) {
-                                    final color = Color(
-                                        family.colorValueForMember(m.id));
-                                    return _AssignChip(
-                                      label: m.name,
-                                      isSelected: _assignedTo == m.id,
-                                      color: color,
-                                      onTap: () => setState(
-                                          () => _assignedTo = m.id),
-                                    );
-                                  }),
-                                ],
-                              ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 10,
+                              children: [
+                                _AssignChip(
+                                  label: 'No one',
+                                  isSelected: _assignedTo == null,
+                                  color: AppColors.subtitle,
+                                  onTap: () =>
+                                      setState(() => _assignedTo = null),
+                                ),
+                                ...family.members.map((m) {
+                                  final color = Color(
+                                      family.colorValueForMember(m.id));
+                                  return _AssignChip(
+                                    label: m.name,
+                                    initial: m.name[0].toUpperCase(),
+                                    role: m.role,
+                                    isSelected: _assignedTo == m.id,
+                                    color: color,
+                                    onTap: () => setState(
+                                        () => _assignedTo = m.id),
+                                  );
+                                }),
+                              ],
                             ),
                           ],
                         );
@@ -480,46 +481,124 @@ class _SuggestToggle extends StatelessWidget {
   }
 }
 
-// ── Assign chip ───────────────────────────────────────────────────────
+// ── Assign chip (card-style) ──────────────────────────────────────────
 
 class _AssignChip extends StatelessWidget {
   final String label;
   final bool isSelected;
   final Color color;
   final VoidCallback onTap;
+  final String? initial;
+  final String? role;
 
   const _AssignChip({
     required this.label,
     required this.isSelected,
     required this.color,
     required this.onTap,
+    this.initial,
+    this.role,
   });
+
+  static String _roleEmoji(String r) => switch (r) {
+        'admin' => '👑',
+        'parent' => '🧑',
+        _ => '👧',
+      };
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(right: 8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        width: 72,
         padding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
         decoration: BoxDecoration(
-          color: isSelected ? color : AppColors.background,
-          borderRadius: BorderRadius.circular(20),
+          color: isSelected
+              ? color.withValues(alpha: 0.1)
+              : AppColors.background,
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected
                 ? color
-                : AppColors.subtitle.withValues(alpha: 0.3),
+                : AppColors.subtitle.withValues(alpha: 0.18),
+            width: isSelected ? 2 : 1,
           ),
         ),
-        child: Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 13,
-            fontWeight:
-                isSelected ? FontWeight.w600 : FontWeight.normal,
-            color: isSelected ? Colors.white : AppColors.subtitle,
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Avatar with checkmark overlay
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: initial != null
+                        ? color.withValues(
+                            alpha: isSelected ? 0.22 : 0.13)
+                        : AppColors.subtitle.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: initial != null
+                      ? Text(
+                          initial!,
+                          style: GoogleFonts.poppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected
+                                ? color
+                                : color.withValues(alpha: 0.85),
+                          ),
+                        )
+                      : const Icon(Icons.person_off_outlined,
+                          size: 16, color: AppColors.subtitle),
+                ),
+                if (isSelected)
+                  Positioned(
+                    right: -2,
+                    bottom: -2,
+                    child: Container(
+                      width: 16,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                            color: Colors.white, width: 1.5),
+                      ),
+                      child: const Icon(Icons.check_rounded,
+                          size: 9, color: Colors.white),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 7),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: 11,
+                fontWeight:
+                    isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? color : AppColors.text,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (role != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                _roleEmoji(role!),
+                style: const TextStyle(fontSize: 10),
+              ),
+            ],
+          ],
         ),
       ),
     );

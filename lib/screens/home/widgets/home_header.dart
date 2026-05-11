@@ -366,6 +366,8 @@ class _MemberChips extends StatelessWidget {
                 label: m.name,
                 isSelected: selectedMemberId == m.id,
                 color: color,
+                initial: m.name[0].toUpperCase(),
+                role: m.role,
                 onTap: () => onSelect(m.id),
               );
             }),
@@ -407,49 +409,116 @@ class _Chip extends StatelessWidget {
   final bool isSelected;
   final Color color;
   final VoidCallback onTap;
+  final String? initial;
+  final String? role;
 
   const _Chip({
     required this.label,
     required this.isSelected,
     required this.color,
     required this.onTap,
+    this.initial,
+    this.role,
   });
+
+  static String _roleLabel(String r) => switch (r) {
+        'admin' => 'Admin',
+        'parent' => 'Parent',
+        _ => 'Child',
+      };
 
   @override
   Widget build(BuildContext context) {
+    final hasAvatar = initial != null;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        padding: EdgeInsets.symmetric(
+            horizontal: hasAvatar ? 8 : 14, vertical: 7),
         decoration: BoxDecoration(
           color: isSelected ? color : Colors.white,
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? color
+                : AppColors.subtitle.withValues(alpha: 0.18),
+            width: 1.2,
+          ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: color.withValues(alpha: 0.35),
+                    color: color.withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
                 ]
               : [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 4,
                     offset: const Offset(0, 1),
                   ),
                 ],
         ),
-        child: Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 13,
-            fontWeight:
-                isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? Colors.white : AppColors.subtitle,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (hasAvatar) ...[
+              Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? Colors.white.withValues(alpha: 0.25)
+                      : color.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  initial!,
+                  style: GoogleFonts.poppins(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? Colors.white : color,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 7),
+            ],
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13,
+                    fontWeight: isSelected
+                        ? FontWeight.w700
+                        : FontWeight.w500,
+                    color: isSelected ? Colors.white : AppColors.text,
+                  ),
+                ),
+                if (role != null)
+                  Text(
+                    _roleLabel(role!),
+                    style: GoogleFonts.poppins(
+                      fontSize: 9.5,
+                      color: isSelected
+                          ? Colors.white.withValues(alpha: 0.75)
+                          : AppColors.subtitle,
+                    ),
+                  ),
+              ],
+            ),
+            if (isSelected) ...[
+              const SizedBox(width: 5),
+              const Icon(Icons.check_rounded,
+                  size: 13, color: Colors.white),
+            ],
+          ],
         ),
       ),
     );
