@@ -358,6 +358,8 @@ class _MemberChips extends StatelessWidget {
               label: 'All',
               isSelected: selectedMemberId == null,
               color: AppColors.primary,
+              avatarIcon: Icons.people_rounded,
+              sublabel: 'Everyone',
               onTap: () => onSelect(null),
             ),
             ...family.members.map((m) {
@@ -372,32 +374,15 @@ class _MemberChips extends StatelessWidget {
                 onTap: () => onSelect(m.id),
               );
             }),
-            if (onManage != null) ...[
-              const SizedBox(width: 6),
-              GestureDetector(
-                onTap: onManage,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: AppColors.background,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.settings_rounded,
-                          size: 13, color: AppColors.subtitle),
-                      const SizedBox(width: 4),
-                      Text('Manage',
-                          style: GoogleFonts.poppins(
-                              fontSize: 12,
-                              color: AppColors.subtitle)),
-                    ],
-                  ),
-                ),
+            if (onManage != null)
+              _Chip(
+                label: 'Manage',
+                isSelected: false,
+                color: AppColors.subtitle,
+                avatarIcon: Icons.settings_rounded,
+                sublabel: 'Family',
+                onTap: onManage!,
               ),
-            ],
           ],
         ),
       ),
@@ -413,6 +398,8 @@ class _Chip extends StatelessWidget {
   final String? initial;
   final String? emoji;
   final String? role;
+  final IconData? avatarIcon;
+  final String? sublabel;
 
   const _Chip({
     required this.label,
@@ -422,6 +409,8 @@ class _Chip extends StatelessWidget {
     this.initial,
     this.emoji,
     this.role,
+    this.avatarIcon,
+    this.sublabel,
   });
 
   static String _roleLabel(String r) => switch (r) {
@@ -432,14 +421,15 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasAvatar = initial != null;
+    final hasAvatar = initial != null || avatarIcon != null;
+    final subText =
+        sublabel ?? (role != null ? _roleLabel(role!) : null);
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         margin: const EdgeInsets.only(right: 8),
-        padding: EdgeInsets.symmetric(
-            horizontal: hasAvatar ? 8 : 14, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
         decoration: BoxDecoration(
           color: isSelected ? color : Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -481,14 +471,22 @@ class _Chip extends StatelessWidget {
                 alignment: Alignment.center,
                 child: emoji != null
                     ? Text(emoji!, style: const TextStyle(fontSize: 14))
-                    : Text(
-                        initial!,
-                        style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected ? Colors.white : color,
-                        ),
-                      ),
+                    : initial != null
+                        ? Text(
+                            initial!,
+                            style: GoogleFonts.poppins(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: isSelected ? Colors.white : color,
+                            ),
+                          )
+                        : Icon(
+                            avatarIcon!,
+                            size: 14,
+                            color: isSelected
+                                ? Colors.white
+                                : color,
+                          ),
               ),
               const SizedBox(width: 7),
             ],
@@ -506,9 +504,9 @@ class _Chip extends StatelessWidget {
                     color: isSelected ? Colors.white : AppColors.text,
                   ),
                 ),
-                if (role != null)
+                if (subText != null)
                   Text(
-                    _roleLabel(role!),
+                    subText,
                     style: GoogleFonts.poppins(
                       fontSize: 9.5,
                       color: isSelected
