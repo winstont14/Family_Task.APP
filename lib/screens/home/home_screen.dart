@@ -39,6 +39,15 @@ class _HomeScreenState extends State<HomeScreen> {
       _selectedMemberId = null;
     }
 
+    final isChild = auth.isChild;
+
+    // Clamp index so a child (2 tabs) never holds index 2
+    final safeIndex = isChild ? _navIndex.clamp(0, 1) : _navIndex;
+    if (safeIndex != _navIndex) {
+      WidgetsBinding.instance.addPostFrameCallback(
+          (_) => setState(() => _navIndex = safeIndex));
+    }
+
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -47,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _HomeHeader(
               selectedMemberId: _selectedMemberId,
               effectiveMemberId: effectiveMemberId,
-              showFilters: _navIndex == 1,
+              showFilters: safeIndex == 1,
               onMemberSelect: (id) =>
                   setState(() => _selectedMemberId = id),
               onManageFamily:
@@ -56,7 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             Expanded(
               child: IndexedStack(
-                index: _navIndex,
+                index: safeIndex,
                 children: [
                   DashboardView(
                     onAddTask: _openAddTodo,
@@ -66,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     }),
                   ),
                   _TaskList(effectiveMemberId: effectiveMemberId),
-                  NotionView(onAddTask: _openAddTodo),
+                  if (!isChild) NotionView(onAddTask: _openAddTodo),
                 ],
               ),
             ),
@@ -74,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _navIndex,
+        currentIndex: safeIndex,
         onTap: (i) => setState(() => _navIndex = i),
         type: BottomNavigationBarType.fixed,
         selectedItemColor: AppColors.primary,
@@ -82,19 +91,20 @@ class _HomeScreenState extends State<HomeScreen> {
         selectedLabelStyle: GoogleFonts.poppins(
             fontSize: 11, fontWeight: FontWeight.w600),
         unselectedLabelStyle: GoogleFonts.poppins(fontSize: 11),
-        items: const [
-          BottomNavigationBarItem(
+        items: [
+          const BottomNavigationBarItem(
             icon: Icon(Icons.dashboard_rounded),
             label: 'Dashboard',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.list_rounded),
             label: 'List',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.article_outlined),
-            label: 'Notion',
-          ),
+          if (!isChild)
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.history_edu_rounded),
+              label: 'Task Log',
+            ),
         ],
       ),
       // FAB on all tabs, only for Admin/Parent
