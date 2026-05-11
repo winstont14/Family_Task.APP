@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 import '../models/family_member.dart';
@@ -50,7 +51,7 @@ class FamilyProvider extends ChangeNotifier {
 
   Future<FamilyMember> addMember(String name, String role, {String? pin}) async {
     final member = FamilyMember(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      id: '${DateTime.now().microsecondsSinceEpoch}_${math.Random().nextInt(999999)}',
       name: name,
       role: role,
       pin: pin?.isEmpty == true ? null : pin,

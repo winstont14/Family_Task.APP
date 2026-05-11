@@ -52,12 +52,12 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
     super.dispose();
   }
 
-  void _save() {
+  Future<void> _save() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
     final provider = context.read<TodoProvider>();
     if (_isEditing) {
-      provider.editTodo(
+      await provider.editTodo(
         widget.existingTodo!,
         text,
         dueDate: _dueDate,
@@ -65,14 +65,14 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
         assignedTo: _assignedTo,
       );
     } else {
-      provider.addTodo(
+      await provider.addTodo(
         text,
         dueDate: _dueDate,
         colorValue: _colorValue,
         assignedTo: _assignedTo,
       );
     }
-    Navigator.pop(context);
+    if (mounted) Navigator.pop(context);
   }
 
   Future<void> _pickDueDate() async {
