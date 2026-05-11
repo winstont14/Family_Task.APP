@@ -156,7 +156,7 @@ class _FamilyHeader extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        '${family.familyName} 👨‍👩‍👧‍👦',
+                        '${family.familyIcon} ${family.familyName}',
                         style: GoogleFonts.poppins(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,

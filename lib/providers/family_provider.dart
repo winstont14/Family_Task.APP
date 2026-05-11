@@ -17,9 +17,11 @@ class FamilyProvider extends ChangeNotifier {
   final FamilyService _service = FamilyService();
   List<FamilyMember> _members = [];
   String _familyName = 'My Family';
+  String _familyIcon = '🏠';
 
   List<FamilyMember> get members => List.unmodifiable(_members);
   String get familyName => _familyName;
+  String get familyIcon => _familyIcon;
   bool get hasAdmin => _members.any((m) => m.role == 'admin');
 
   int colorValueForMember(String id) {
@@ -41,6 +43,8 @@ class FamilyProvider extends ChangeNotifier {
     final box = Hive.box(AppConstants.settingsBox);
     _familyName =
         box.get(AppConstants.familyNameKey, defaultValue: 'My Family') as String;
+    _familyIcon =
+        box.get(AppConstants.familyIconKey, defaultValue: '🏠') as String;
     notifyListeners();
   }
 
@@ -76,6 +80,13 @@ class FamilyProvider extends ChangeNotifier {
   Future<void> deleteMember(String id) async {
     await _service.deleteMember(id);
     _members.removeWhere((m) => m.id == id);
+    notifyListeners();
+  }
+
+  Future<void> setFamilyIcon(String icon) async {
+    final box = Hive.box(AppConstants.settingsBox);
+    await box.put(AppConstants.familyIconKey, icon);
+    _familyIcon = icon;
     notifyListeners();
   }
 

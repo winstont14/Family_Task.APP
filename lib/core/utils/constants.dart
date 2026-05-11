@@ -5,4 +5,5 @@ class AppConstants {
   static const String usernameKey = 'username';
   static const String familyNameKey = 'familyName';
   static const String currentUserKey = 'currentUserId';
+  static const String familyIconKey = 'familyIcon';
 }
