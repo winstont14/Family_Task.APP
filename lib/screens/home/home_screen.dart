@@ -13,7 +13,6 @@ import '../../widgets/progress_widget.dart';
 import '../../widgets/section_title.dart';
 import '../../widgets/todo_card.dart';
 import '../add_todo/add_todo_screen.dart';
-import 'views/group_list_view.dart';
 import 'views/notion_view.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -80,7 +79,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 index: _navIndex,
                 children: [
                   _TaskList(effectiveMemberId: effectiveMemberId),
-                  GroupListView(onAddTask: _openAddTodo),
                   NotionView(onAddTask: _openAddTodo),
                 ],
               ),
@@ -103,10 +101,6 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'List',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.group_rounded),
-            label: 'Groups',
-          ),
-          BottomNavigationBarItem(
             icon: Icon(Icons.article_outlined),
             label: 'Notion',
           ),
@@ -114,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       // FAB only on List + Notion tabs, and only for Admin/Parent
       floatingActionButton: auth.canManageTasks &&
-              (_navIndex == 0 || _navIndex == 2)
+              (_navIndex == 0 || _navIndex == 1)
           ? FloatingActionButton.extended(
               onPressed: _openAddTodo,
               icon: const Icon(Icons.add_rounded, size: 28),
