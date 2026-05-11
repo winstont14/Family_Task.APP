@@ -5,12 +5,12 @@ import '../services/family_service.dart';
 import '../core/utils/constants.dart';
 
 const List<int> kMemberColorValues = [
-  0xFF5B8DEF, // blue (primary)
-  0xFFAB86E8, // purple
-  0xFF52C78B, // green
-  0xFFFF9460, // orange
-  0xFFFF7BAC, // pink
-  0xFF4ECDC4, // teal
+  0xFF7B68EE, // soft indigo
+  0xFFFF6B9D, // coral pink
+  0xFF52C78B, // mint green
+  0xFFFFAA57, // warm orange
+  0xFF56CCF2, // sky blue
+  0xFFBB8FCE, // soft purple
 ];
 
 class FamilyProvider extends ChangeNotifier {

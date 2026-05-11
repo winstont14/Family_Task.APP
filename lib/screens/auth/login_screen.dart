@@ -11,12 +11,12 @@ import 'onboarding_screen.dart';
 
 // Wireframe avatar tone backgrounds (peach · mint · lilac · lemon · pink · teal)
 const _kAvatarBgTones = [
-  Color(0xFFD4E4FC), // blue member  → light blue
-  Color(0xFFDCD0F0), // purple       → lilac
-  Color(0xFFC9E4CA), // green        → mint
-  Color(0xFFF6CFB8), // orange       → peach
-  Color(0xFFFFD6E8), // pink         → blush
-  Color(0xFFB2F0ED), // teal         → light teal
+  Color(0xFFD4C5F9), // indigo  → pastel lavender
+  Color(0xFFFFD6E8), // pink    → pastel rose
+  Color(0xFFB5EAD7), // green   → pastel mint
+  Color(0xFFFFCBAA), // orange  → pastel peach
+  Color(0xFFB5D8F7), // blue    → pastel sky
+  Color(0xFFE8D5F5), // purple  → pastel lilac
 ];
 
 // ─────────────────────────── Router ─────────────────────────────────
