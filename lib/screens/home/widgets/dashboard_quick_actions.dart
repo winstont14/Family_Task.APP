@@ -78,7 +78,7 @@ class _ActionButton extends StatelessWidget {
                   ? color.withValues(alpha: 0.25)
                   : Colors.black.withValues(alpha: 0.04),
               blurRadius: filled ? 10 : 8,
-              offset: const Offset(0, filled ? 4 : 2),
+              offset: Offset(0, filled ? 4 : 2),
             ),
           ],
         ),
