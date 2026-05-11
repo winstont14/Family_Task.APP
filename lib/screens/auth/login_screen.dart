@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,6 +7,19 @@ import '../../core/theme/colors.dart';
 import '../../models/family_member.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/family_provider.dart';
+import 'onboarding_screen.dart';
+
+// Wireframe avatar tone backgrounds (peach · mint · lilac · lemon · pink · teal)
+const _kAvatarBgTones = [
+  Color(0xFFD4C5F9), // indigo  → pastel lavender
+  Color(0xFFFFD6E8), // pink    → pastel rose
+  Color(0xFFB5EAD7), // green   → pastel mint
+  Color(0xFFFFCBAA), // orange  → pastel peach
+  Color(0xFFB5D8F7), // blue    → pastel sky
+  Color(0xFFE8D5F5), // purple  → pastel lilac
+];
+
+// ─────────────────────────── Router ─────────────────────────────────
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -13,108 +27,151 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final family = context.watch<FamilyProvider>();
-
-    if (!family.hasAdmin) {
-      return const _AdminSetupScreen();
-    }
+    if (!family.hasAdmin) return const OnboardingScreen();
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFFBFAF6), // --paper
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(28, 48, 28, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                family.familyName,
-                style: GoogleFonts.poppins(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.text,
-                ),
+        child: Column(
+          children: [
+            // ── V6 · centered header ────────────────────────────────
+            const SizedBox(height: 48),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: Column(
+                children: [
+                  Text(
+                    "Who's using this?",
+                    style: GoogleFonts.poppins(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1f1f1f),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'this device is shared',
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      color: const Color(0xFF8a8a8a),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Who are you? 👋',
-                style: GoogleFonts.poppins(
-                  fontSize: 18,
-                  color: AppColors.subtitle,
-                ),
-              ),
-              const SizedBox(height: 36),
-              Expanded(
+            ),
+
+            const SizedBox(height: 28),
+
+            // ── V6 · 2-column member grid + add card ────────────────
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: GridView.builder(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    mainAxisSpacing: 20,
-                    crossAxisSpacing: 16,
-                    childAspectRatio: 0.78,
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 0.85,
                   ),
-                  itemCount: family.members.length,
+                  itemCount: family.members.length + 1, // +1 for add card
                   itemBuilder: (ctx, i) {
+                    if (i == family.members.length) return const _AddCard();
                     final m = family.members[i];
-                    final color = Color(family.colorValueForMember(m.id));
-                    return _MemberTile(member: m, color: color);
+                    final memberColor = Color(family.colorValueForMember(m.id));
+                    final bgTone = _kAvatarBgTones[i % _kAvatarBgTones.length];
+                    return _MemberCard(
+                      member: m,
+                      memberColor: memberColor,
+                      avatarBg: bgTone,
+                    );
                   },
                 ),
               ),
-            ],
-          ),
+            ),
+
+            // ── V6 · footer ─────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(28, 12, 28, 28),
+              child: Text(
+                'parent · 4-digit PIN',
+                style: GoogleFonts.poppins(
+                  fontSize: 12,
+                  color: const Color(0xFF8a8a8a),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-// ─────────────────────────── Member Tile ────────────────────────────
+// ─────────────────────── Member Card · V6 ───────────────────────────
 
-class _MemberTile extends StatelessWidget {
+class _MemberCard extends StatelessWidget {
   final FamilyMember member;
-  final Color color;
+  final Color memberColor;
+  final Color avatarBg;
 
-  const _MemberTile({required this.member, required this.color});
+  const _MemberCard({
+    required this.member,
+    required this.memberColor,
+    required this.avatarBg,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => _onTap(context),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CircleAvatar(
-            radius: 38,
-            backgroundColor: color.withValues(alpha: 0.15),
-            child: Text(
-              member.name[0].toUpperCase(),
-              style: GoogleFonts.poppins(
-                fontSize: 30,
-                fontWeight: FontWeight.bold,
-                color: color,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: const Color(0xFF1f1f1f).withValues(alpha: 0.18),
+            width: 1.6,
+          ),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // XL avatar — 56 px, tone-colored background
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: avatarBg),
+              alignment: Alignment.center,
+              child: Text(
+                member.name[0].toUpperCase(),
+                style: GoogleFonts.poppins(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: memberColor,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            member.name,
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AppColors.text,
+            const SizedBox(height: 10),
+            Text(
+              member.name,
+              style: GoogleFonts.poppins(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF1f1f1f),
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          _RoleBadge(role: member.role),
-          if (member.pin != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Icon(Icons.lock_outline_rounded,
-                  size: 13, color: AppColors.subtitle),
-            ),
-        ],
+            const SizedBox(height: 6),
+            // Accent-fill pill when PIN-protected (V6 spec)
+            _RolePill(role: member.role, hasPin: member.pin != null),
+          ],
+        ),
       ),
     );
   }
@@ -135,36 +192,139 @@ class _MemberTile extends StatelessWidget {
   }
 }
 
-// ─────────────────────────── Role Badge ─────────────────────────────
+// ─────────────────────── Add Card · V6 dashed ───────────────────────
 
-class _RoleBadge extends StatelessWidget {
-  final String role;
-  const _RoleBadge({required this.role});
+class _AddCard extends StatelessWidget {
+  const _AddCard();
 
   @override
   Widget build(BuildContext context) {
-    final (label, bg) = switch (role) {
-      'admin' => ('👑 Admin', const Color(0xFFFFF3CD)),
-      'parent' => ('👔 Parent', const Color(0xFFDCEEFD)),
-      _ => ('🌟 Child', const Color(0xFFD4F1E4)),
-    };
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(8),
+    return CustomPaint(
+      painter: _DashedRoundedBorderPainter(
+        color: const Color(0xFF8a8a8a).withValues(alpha: 0.55),
+        strokeWidth: 1.4,
+        radius: 12,
+        dashWidth: 6,
+        dashSpace: 4,
       ),
-      child: Text(
-        label,
-        style: GoogleFonts.poppins(
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-          color: AppColors.text,
-        ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            '+',
+            style: GoogleFonts.poppins(
+              fontSize: 32,
+              fontWeight: FontWeight.w300,
+              color: const Color(0xFF8a8a8a),
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'add',
+            style: GoogleFonts.poppins(
+              fontSize: 11,
+              color: const Color(0xFF8a8a8a),
+            ),
+          ),
+        ],
       ),
     );
   }
+}
+
+// ─────────────────── Dashed border painter ──────────────────────────
+
+class _DashedRoundedBorderPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final double radius;
+  final double dashWidth;
+  final double dashSpace;
+
+  const _DashedRoundedBorderPainter({
+    required this.color,
+    required this.strokeWidth,
+    required this.radius,
+    required this.dashWidth,
+    required this.dashSpace,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    final rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(strokeWidth / 2, strokeWidth / 2,
+          size.width - strokeWidth, size.height - strokeWidth),
+      Radius.circular(radius),
+    );
+
+    final path = Path()..addRRect(rrect);
+    final dashPath = _buildDashPath(path);
+    canvas.drawPath(dashPath, paint);
+  }
+
+  Path _buildDashPath(Path source) {
+    final dest = Path();
+    for (final metric in source.computeMetrics()) {
+      double dist = 0;
+      while (dist < metric.length) {
+        final len = math.min(dashWidth, metric.length - dist);
+        dest.addPath(metric.extractPath(dist, dist + len), Offset.zero);
+        dist += dashWidth + dashSpace;
+      }
+    }
+    return dest;
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedRoundedBorderPainter old) =>
+      old.color != color ||
+      old.strokeWidth != strokeWidth ||
+      old.dashWidth != dashWidth;
+}
+
+// ─────────────────────────── Role Pill ──────────────────────────────
+
+class _RolePill extends StatelessWidget {
+  final String role;
+  final bool hasPin;
+
+  const _RolePill({required this.role, required this.hasPin});
+
+  @override
+  Widget build(BuildContext context) {
+    // V6 spec: accent-fill pill for PIN-protected admin/parent
+    if (hasPin && (role == 'admin' || role == 'parent')) {
+      final label = role == 'admin' ? '👑 Admin' : '👔 Parent';
+      return _pill('$label 🔒', AppColors.primary, Colors.white);
+    }
+
+    return switch (role) {
+      'admin' => _pill('👑 Admin', const Color(0xFFFFF3CD), const Color(0xFF8B6914)),
+      'parent' => _pill('👔 Parent', const Color(0xFFDCEEFD), const Color(0xFF1A6EA8)),
+      _ => _pill('🌟 Kid', const Color(0xFFD4F1E4), const Color(0xFF1A7A4A)),
+    };
+  }
+
+  Widget _pill(String label, Color bg, Color fg) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.poppins(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: fg,
+          ),
+        ),
+      );
 }
 
 // ─────────────────────────── PIN Dialog ─────────────────────────────
@@ -187,9 +347,7 @@ class _PinDialogState extends State<_PinDialog> {
       _entered += d;
       _error = false;
     });
-    if (_entered.length == 4) {
-      Future.microtask(_verify);
-    }
+    if (_entered.length == 4) Future.microtask(_verify);
   }
 
   void _onDelete() {
@@ -221,19 +379,15 @@ class _PinDialogState extends State<_PinDialog> {
             Text(
               'Enter PIN',
               style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppColors.text,
-              ),
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1f1f1f)),
             ),
             const SizedBox(height: 4),
-            Text(
-              widget.member.name,
-              style: GoogleFonts.poppins(
-                  fontSize: 14, color: AppColors.subtitle),
-            ),
+            Text(widget.member.name,
+                style: GoogleFonts.poppins(
+                    fontSize: 14, color: const Color(0xFF8a8a8a))),
             const SizedBox(height: 24),
-            // PIN dots
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(4, (i) {
@@ -248,7 +402,7 @@ class _PinDialogState extends State<_PinDialog> {
                         ? Colors.redAccent
                         : filled
                             ? AppColors.primary
-                            : AppColors.subtitle.withValues(alpha: 0.25),
+                            : const Color(0xFF8a8a8a).withValues(alpha: 0.25),
                   ),
                 );
               }),
@@ -256,25 +410,20 @@ class _PinDialogState extends State<_PinDialog> {
             if (_error)
               Padding(
                 padding: const EdgeInsets.only(top: 10),
-                child: Text(
-                  'Wrong PIN — try again',
-                  style: GoogleFonts.poppins(
-                      fontSize: 13, color: Colors.redAccent),
-                ),
+                child: Text('Wrong PIN — try again',
+                    style: GoogleFonts.poppins(
+                        fontSize: 13, color: Colors.redAccent)),
               ),
             const SizedBox(height: 24),
-            // Numpad rows 1-9
             ...List.generate(3, (row) {
               return Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(3, (col) {
                   final digit = (row * 3 + col + 1).toString();
-                  return _DigitButton(
-                      digit: digit, onTap: () => _onDigit(digit));
+                  return _DigitButton(digit: digit, onTap: () => _onDigit(digit));
                 }),
               );
             }),
-            // Bottom row: empty / 0 / backspace
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -285,7 +434,7 @@ class _PinDialogState extends State<_PinDialog> {
                   height: 64,
                   child: IconButton(
                     icon: const Icon(Icons.backspace_outlined,
-                        color: AppColors.subtitle),
+                        color: Color(0xFF8a8a8a)),
                     onPressed: _onDelete,
                     iconSize: 22,
                   ),
@@ -295,10 +444,8 @@ class _PinDialogState extends State<_PinDialog> {
             const SizedBox(height: 4),
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text(
-                'Cancel',
-                style: GoogleFonts.poppins(color: AppColors.subtitle),
-              ),
+              child: Text('Cancel',
+                  style: GoogleFonts.poppins(color: const Color(0xFF8a8a8a))),
             ),
           ],
         ),
@@ -310,7 +457,6 @@ class _PinDialogState extends State<_PinDialog> {
 class _DigitButton extends StatelessWidget {
   final String digit;
   final VoidCallback onTap;
-
   const _DigitButton({required this.digit, required this.onTap});
 
   @override
@@ -323,17 +469,16 @@ class _DigitButton extends StatelessWidget {
         child: Text(
           digit,
           style: GoogleFonts.poppins(
-            fontSize: 24,
-            fontWeight: FontWeight.w500,
-            color: AppColors.text,
-          ),
+              fontSize: 24,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF1f1f1f)),
         ),
       ),
     );
   }
 }
 
-// ──────────────────────── Admin Setup Screen ──────────────────────────
+// ─────────────────────── Admin Setup · V2 ───────────────────────────
 
 class _AdminSetupScreen extends StatefulWidget {
   const _AdminSetupScreen();
@@ -363,12 +508,10 @@ class _AdminSetupScreenState extends State<_AdminSetupScreen> {
     final pin = _pinCtrl.text.trim();
 
     if (familyName.isEmpty || name.isEmpty) return;
-
     if (pin.isNotEmpty && pin.length != 4) {
       setState(() => _pinError = true);
       return;
     }
-
     setState(() => _pinError = false);
 
     final family = context.read<FamilyProvider>();
@@ -385,95 +528,135 @@ class _AdminSetupScreenState extends State<_AdminSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFFBFAF6), // --paper
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(28, 56, 28, 28),
+          padding: const EdgeInsets.fromLTRB(24, 56, 24, 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // ── V2 · header ────────────────────────────────────────
               Text(
-                'Welcome! 👋',
+                'Create workspace',
                 style: GoogleFonts.poppins(
-                  fontSize: 32,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.text,
+                  color: const Color(0xFF1f1f1f),
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Text(
-                'Set up your family workspace.',
+                'all in one place',
                 style: GoogleFonts.poppins(
-                    fontSize: 16, color: AppColors.subtitle),
+                  fontSize: 10,
+                  letterSpacing: 1.0,
+                  color: const Color(0xFF8a8a8a),
+                ),
               ),
-              const SizedBox(height: 44),
-              _Label('Family name'),
+
+              const SizedBox(height: 36),
+
+              // ── Family name ────────────────────────────────────────
+              const _FieldLabel('Family name'),
               const SizedBox(height: 8),
-              _SetupField(
+              _ThinInput(
                 controller: _familyNameCtrl,
-                hint: 'e.g. Smith Family',
-                icon: Icons.home_outlined,
-              ),
-              const SizedBox(height: 24),
-              _Label('Your name'),
-              const SizedBox(height: 8),
-              _SetupField(
-                controller: _nameCtrl,
-                hint: 'e.g. Alex',
-                icon: Icons.person_outline_rounded,
+                hint: 'e.g. The Smiths',
+                prefixIcon: Icons.home_outlined,
                 textCapitalization: TextCapitalization.words,
               ),
-              const SizedBox(height: 24),
-              _Label('PIN (optional — must be 4 digits if set)'),
+
+              const SizedBox(height: 22),
+
+              // ── Admin name ─────────────────────────────────────────
+              const _FieldLabel('Your name (Admin)'),
               const SizedBox(height: 8),
-              _SetupField(
+              _ThinInput(
+                controller: _nameCtrl,
+                hint: 'e.g. Alex',
+                prefixIcon: Icons.person_outline_rounded,
+                textCapitalization: TextCapitalization.words,
+              ),
+
+              const SizedBox(height: 22),
+
+              // ── PIN ────────────────────────────────────────────────
+              const _FieldLabel('PIN (optional)'),
+              const SizedBox(height: 4),
+              Text(
+                'must be exactly 4 digits if set',
+                style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  color: const Color(0xFF8a8a8a),
+                ),
+              ),
+              const SizedBox(height: 8),
+              _ThinInput(
                 controller: _pinCtrl,
-                hint: '4-digit PIN',
-                icon: Icons.lock_outline_rounded,
+                hint: '••••',
+                prefixIcon: Icons.lock_outline_rounded,
                 keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                ],
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 maxLength: 4,
                 obscureText: _obscurePin,
-                errorText:
-                    _pinError ? 'PIN must be exactly 4 digits' : null,
+                errorText: _pinError ? 'PIN must be exactly 4 digits' : null,
                 onChanged: (_) => setState(() => _pinError = false),
                 suffix: IconButton(
                   icon: Icon(
                     _obscurePin
                         ? Icons.visibility_outlined
                         : Icons.visibility_off_outlined,
-                    color: AppColors.subtitle,
+                    color: const Color(0xFF8a8a8a),
                     size: 20,
                   ),
-                  onPressed: () =>
-                      setState(() => _obscurePin = !_obscurePin),
+                  onPressed: () => setState(() => _obscurePin = !_obscurePin),
                 ),
               ),
+
+              const SizedBox(height: 22),
+
+              // ── V2 · add children (mock — visual only) ─────────────
+              const _FieldLabel('add children'),
               const SizedBox(height: 8),
-              Text(
-                'You are the Admin — you can manage all members and tasks.',
-                style: GoogleFonts.poppins(
-                    fontSize: 13, color: AppColors.subtitle),
+              const Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  _ChildChip(initial: 'E', name: 'Emma', tone: Color(0xFFC9E4CA)),
+                  _ChildChip(initial: 'L', name: 'Leo', tone: Color(0xFFF6CFB8)),
+                  _AddChildChip(),
+                ],
               ),
-              const SizedBox(height: 40),
+
+              const SizedBox(height: 36),
+
+              // ── V2 · primary button ────────────────────────────────
               SizedBox(
-                height: 58,
+                height: 54,
                 child: ElevatedButton(
                   onPressed: _create,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
+                    elevation: 0,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                   child: Text(
-                    'Get Started',
+                    'Create family →',
                     style: GoogleFonts.poppins(
-                        fontSize: 18, fontWeight: FontWeight.w600),
+                        fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
+              ),
+
+              const SizedBox(height: 18),
+
+              Text(
+                "You'll be Admin — add more family members from the home screen.",
+                style: GoogleFonts.poppins(
+                    fontSize: 11, color: const Color(0xFF8a8a8a)),
+                textAlign: TextAlign.center,
               ),
             ],
           ),
@@ -483,27 +666,32 @@ class _AdminSetupScreenState extends State<_AdminSetupScreen> {
   }
 }
 
-class _Label extends StatelessWidget {
+// ── Thin-stroke field label (V2 · wf-cap style) ───────────────────────
+
+class _FieldLabel extends StatelessWidget {
   final String text;
-  const _Label(this.text);
+  const _FieldLabel(this.text);
 
   @override
   Widget build(BuildContext context) {
     return Text(
-      text,
+      text.toUpperCase(),
       style: GoogleFonts.poppins(
-        fontSize: 14,
+        fontSize: 10,
         fontWeight: FontWeight.w600,
-        color: AppColors.text,
+        color: const Color(0xFF8a8a8a),
+        letterSpacing: 1.0,
       ),
     );
   }
 }
 
-class _SetupField extends StatelessWidget {
+// ── Thin-stroke input (V2 · wf-stroke-thin: 1.2px solid, 10px radius) ──
+
+class _ThinInput extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
-  final IconData icon;
+  final IconData prefixIcon;
   final TextInputType keyboardType;
   final List<TextInputFormatter>? inputFormatters;
   final int? maxLength;
@@ -513,10 +701,10 @@ class _SetupField extends StatelessWidget {
   final String? errorText;
   final ValueChanged<String>? onChanged;
 
-  const _SetupField({
+  const _ThinInput({
     required this.controller,
     required this.hint,
-    required this.icon,
+    required this.prefixIcon,
     this.keyboardType = TextInputType.text,
     this.inputFormatters,
     this.maxLength,
@@ -530,6 +718,10 @@ class _SetupField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasError = errorText != null;
+    final borderColor = hasError
+        ? Colors.redAccent
+        : const Color(0xFF4a4a4a).withValues(alpha: 0.35);
+
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
@@ -538,53 +730,105 @@ class _SetupField extends StatelessWidget {
       obscureText: obscureText,
       textCapitalization: textCapitalization,
       onChanged: onChanged,
-      style: GoogleFonts.poppins(fontSize: 16, color: AppColors.text),
+      style: GoogleFonts.poppins(fontSize: 15, color: const Color(0xFF1f1f1f)),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle:
-            GoogleFonts.poppins(fontSize: 15, color: AppColors.subtitle),
-        prefixIcon: Icon(icon,
-            color: hasError ? Colors.redAccent : AppColors.subtitle,
-            size: 20),
+        hintStyle: GoogleFonts.poppins(
+            fontSize: 14, color: const Color(0xFF8a8a8a)),
+        prefixIcon: Icon(prefixIcon,
+            color: hasError ? Colors.redAccent : const Color(0xFF8a8a8a),
+            size: 19),
         suffixIcon: suffix,
         filled: true,
         fillColor: Colors.white,
         counterText: '',
         errorText: errorText,
         errorStyle: GoogleFonts.poppins(
-            fontSize: 12,
-            color: Colors.redAccent,
-            fontWeight: FontWeight.w500),
+            fontSize: 11, color: Colors.redAccent, fontWeight: FontWeight.w500),
+        // wf-stroke-thin: 1.2px solid ink-soft, 10px radius
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(
-              color: AppColors.subtitle.withValues(alpha: 0.2)),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: borderColor, width: 1.2),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: hasError
-              ? const BorderSide(color: Colors.redAccent, width: 1.5)
-              : BorderSide(
-                  color: AppColors.subtitle.withValues(alpha: 0.2)),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: borderColor, width: 1.2),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: hasError
-              ? const BorderSide(color: Colors.redAccent, width: 2)
-              : const BorderSide(color: AppColors.primary, width: 2),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(
+            color: hasError ? Colors.redAccent : AppColors.primary,
+            width: 1.6,
+          ),
         ),
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       ),
     );
   }
 }
 
-// ── Public role badge export so home_screen can reuse it ──
-class RoleBadge extends StatelessWidget {
-  final String role;
-  const RoleBadge({super.key, required this.role});
+// ── Mock child chip (V2 · visual only, no logic) ─────────────────────
+
+class _ChildChip extends StatelessWidget {
+  final String initial;
+  final String name;
+  final Color tone;
+  const _ChildChip({required this.initial, required this.name, required this.tone});
 
   @override
-  Widget build(BuildContext context) => _RoleBadge(role: role);
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFF4a4a4a).withValues(alpha: 0.35), width: 1.2),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          width: 20, height: 20,
+          decoration: BoxDecoration(shape: BoxShape.circle, color: tone),
+          alignment: Alignment.center,
+          child: Text(initial,
+              style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold,
+                  color: const Color(0xFF4a4a4a))),
+        ),
+        const SizedBox(width: 5),
+        Text(name, style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFF1f1f1f))),
+      ]),
+    );
+  }
+}
+
+class _AddChildChip extends StatelessWidget {
+  const _AddChildChip();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _DashedRoundedBorderPainter(
+        color: const Color(0xFF8a8a8a).withValues(alpha: 0.5),
+        strokeWidth: 1.2,
+        radius: 10,
+        dashWidth: 5,
+        dashSpace: 3,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        child: Text('+ add another',
+            style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFF8a8a8a))),
+      ),
+    );
+  }
+}
+
+// ── Public export so home_screen can reuse the role pill ─────────────
+class RoleBadge extends StatelessWidget {
+  final String role;
+  final bool hasPin;
+  const RoleBadge({super.key, required this.role, this.hasPin = false});
+
+  @override
+  Widget build(BuildContext context) =>
+      _RolePill(role: role, hasPin: hasPin);
 }
