@@ -61,7 +61,8 @@ class _AddMemberSheetState extends State<AddMemberSheet> {
       return;
     }
     final provider = context.read<FamilyProvider>();
-    await provider.addMember(name, _role, pin: pin.isEmpty ? null : pin);
+    await provider.addMember(name, _role,
+        pin: pin.isEmpty ? null : pin, emoji: _avatar);
     if (!mounted) return;
     setState(() {
       _addedName = name;

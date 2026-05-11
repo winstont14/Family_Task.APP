@@ -367,6 +367,7 @@ class _MemberChips extends StatelessWidget {
                 isSelected: selectedMemberId == m.id,
                 color: color,
                 initial: m.name[0].toUpperCase(),
+                emoji: m.emoji,
                 role: m.role,
                 onTap: () => onSelect(m.id),
               );
@@ -410,6 +411,7 @@ class _Chip extends StatelessWidget {
   final Color color;
   final VoidCallback onTap;
   final String? initial;
+  final String? emoji;
   final String? role;
 
   const _Chip({
@@ -418,6 +420,7 @@ class _Chip extends StatelessWidget {
     required this.color,
     required this.onTap,
     this.initial,
+    this.emoji,
     this.role,
   });
 
@@ -476,14 +479,16 @@ class _Chip extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
-                child: Text(
-                  initial!,
-                  style: GoogleFonts.poppins(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: isSelected ? Colors.white : color,
-                  ),
-                ),
+                child: emoji != null
+                    ? Text(emoji!, style: const TextStyle(fontSize: 14))
+                    : Text(
+                        initial!,
+                        style: GoogleFonts.poppins(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? Colors.white : color,
+                        ),
+                      ),
               ),
               const SizedBox(width: 7),
             ],

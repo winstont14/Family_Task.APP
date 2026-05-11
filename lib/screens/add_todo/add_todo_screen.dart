@@ -312,6 +312,7 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
                                   return _AssignChip(
                                     label: m.name,
                                     initial: m.name[0].toUpperCase(),
+                                    emoji: m.emoji,
                                     role: m.role,
                                     isSelected: _assignedTo == m.id,
                                     color: color,
@@ -489,6 +490,7 @@ class _AssignChip extends StatelessWidget {
   final Color color;
   final VoidCallback onTap;
   final String? initial;
+  final String? emoji;
   final String? role;
 
   const _AssignChip({
@@ -497,6 +499,7 @@ class _AssignChip extends StatelessWidget {
     required this.color,
     required this.onTap,
     this.initial,
+    this.emoji,
     this.role,
   });
 
@@ -546,16 +549,18 @@ class _AssignChip extends StatelessWidget {
                   ),
                   alignment: Alignment.center,
                   child: initial != null
-                      ? Text(
-                          initial!,
-                          style: GoogleFonts.poppins(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: isSelected
-                                ? color
-                                : color.withValues(alpha: 0.85),
-                          ),
-                        )
+                      ? (emoji != null
+                          ? Text(emoji!, style: const TextStyle(fontSize: 18))
+                          : Text(
+                              initial!,
+                              style: GoogleFonts.poppins(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: isSelected
+                                    ? color
+                                    : color.withValues(alpha: 0.85),
+                              ),
+                            ))
                       : const Icon(Icons.person_off_outlined,
                           size: 16, color: AppColors.subtitle),
                 ),

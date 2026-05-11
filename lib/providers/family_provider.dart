@@ -53,12 +53,14 @@ class FamilyProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<FamilyMember> addMember(String name, String role, {String? pin}) async {
+  Future<FamilyMember> addMember(String name, String role,
+      {String? pin, String? emoji}) async {
     final member = FamilyMember(
       id: '${DateTime.now().microsecondsSinceEpoch}_${math.Random().nextInt(999999)}',
       name: name,
       role: role,
       pin: pin?.isEmpty == true ? null : pin,
+      emoji: emoji,
     );
     await _service.addMember(member);
     _members.add(member);

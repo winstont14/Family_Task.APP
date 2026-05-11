@@ -21,13 +21,14 @@ class FamilyMemberAdapter extends TypeAdapter<FamilyMember> {
       name: fields[1] as String,
       role: fields[2] as String,
       pin: fields[3] as String?,
+      emoji: fields[4] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, FamilyMember obj) {
     writer
-      ..writeByte(4)
+      ..writeByte(5)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -35,7 +36,9 @@ class FamilyMemberAdapter extends TypeAdapter<FamilyMember> {
       ..writeByte(2)
       ..write(obj.role)
       ..writeByte(3)
-      ..write(obj.pin);
+      ..write(obj.pin)
+      ..writeByte(4)
+      ..write(obj.emoji);
   }
 
   @override

@@ -299,14 +299,16 @@ class _Avatar extends StatelessWidget {
     } else if (event.type == _EventType.reward) {
       content = const Text('🎁', style: TextStyle(fontSize: 17));
     } else if (member != null) {
-      content = Text(
-        member!.name[0].toUpperCase(),
-        style: GoogleFonts.poppins(
-          fontSize: 15,
-          fontWeight: FontWeight.bold,
-          color: memberColor,
-        ),
-      );
+      content = member!.emoji != null
+          ? Text(member!.emoji!, style: const TextStyle(fontSize: 17))
+          : Text(
+              member!.name[0].toUpperCase(),
+              style: GoogleFonts.poppins(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: memberColor,
+              ),
+            );
     } else {
       content = Icon(fallbackIcon, size: 17, color: accent);
     }

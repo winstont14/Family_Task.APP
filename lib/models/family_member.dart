@@ -16,10 +16,14 @@ class FamilyMember extends HiveObject {
   @HiveField(3)
   String? pin; // 4-digit PIN, null = no PIN required
 
+  @HiveField(4)
+  String? emoji; // avatar emoji chosen during member creation
+
   FamilyMember({
     required this.id,
     required this.name,
     this.role = 'child',
     this.pin,
+    this.emoji,
   });
 }

@@ -175,6 +175,7 @@ class _FamilySheetState extends State<FamilySheet> {
                 return _MemberRow(
                   name: m.name,
                   role: m.role,
+                  emoji: m.emoji,
                   hasPin: m.pin != null,
                   color: color,
                   onDelete: () =>
@@ -216,6 +217,7 @@ class _FamilySheetState extends State<FamilySheet> {
 class _MemberRow extends StatelessWidget {
   final String name;
   final String role;
+  final String? emoji;
   final bool hasPin;
   final Color color;
   final VoidCallback onDelete;
@@ -223,6 +225,7 @@ class _MemberRow extends StatelessWidget {
   const _MemberRow({
     required this.name,
     required this.role,
+    this.emoji,
     required this.hasPin,
     required this.color,
     required this.onDelete,
@@ -230,7 +233,7 @@ class _MemberRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (String emoji, String label) = switch (role) {
+    final (String roleIcon, String label) = switch (role) {
       'admin' => ('👑', 'Admin'),
       'parent' => ('🧑', 'Parent'),
       _ => ('👧', 'Child'),
@@ -255,14 +258,16 @@ class _MemberRow extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
-              child: Text(
-                name[0].toUpperCase(),
-                style: GoogleFonts.poppins(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
+              child: emoji != null
+                  ? Text(emoji!, style: const TextStyle(fontSize: 18))
+                  : Text(
+                      name[0].toUpperCase(),
+                      style: GoogleFonts.poppins(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
+                    ),
             ),
             const SizedBox(width: 12),
             // Name + role
@@ -281,7 +286,7 @@ class _MemberRow extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        '$emoji $label',
+                        '$roleIcon $label',
                         style: GoogleFonts.poppins(
                             fontSize: 12, color: AppColors.subtitle),
                       ),
