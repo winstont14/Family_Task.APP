@@ -443,38 +443,35 @@ class _MemberGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
-        childAspectRatio: 1.1,
-      ),
-      itemCount: members.length,
-      itemBuilder: (_, i) {
-        final m = members[i];
-        final color = Color(family.colorValueForMember(m.id));
-        final active = todos.activeTodosForMember(m.id);
-        final done = todos.completedTodosForMember(m.id);
-        final memberTotal = active.length + done.length;
-        final overdueForMember = active.where((t) =>
-            t.dueDate != null && t.dueDate!.isBefore(now)).length;
+    return SizedBox(
+      height: 160,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        itemCount: members.length,
+        itemBuilder: (_, i) {
+          final m = members[i];
+          final color = Color(family.colorValueForMember(m.id));
+          final active = todos.activeTodosForMember(m.id);
+          final done = todos.completedTodosForMember(m.id);
+          final memberTotal = active.length + done.length;
+          final overdueForMember = active.where((t) =>
+              t.dueDate != null && t.dueDate!.isBefore(now)).length;
 
-        return GestureDetector(
-          onTap: () => onViewMember(m.id),
-          child: _MemberCard(
-            name: m.name,
-            role: m.role,
-            color: color,
-            done: done.length,
-            total: memberTotal,
-            overdueCount: overdueForMember,
-            rank: i,
-          ),
-        );
-      },
+          return GestureDetector(
+            onTap: () => onViewMember(m.id),
+            child: _MemberCard(
+              name: m.name,
+              role: m.role,
+              color: color,
+              done: done.length,
+              total: memberTotal,
+              overdueCount: overdueForMember,
+              rank: i,
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -509,6 +506,8 @@ class _MemberCard extends StatelessWidget {
     };
 
     return Container(
+      width: 140,
+      margin: const EdgeInsets.only(right: 10),
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -532,8 +531,8 @@ class _MemberCard extends StatelessWidget {
             children: [
               // Avatar
               Container(
-                width: 40,
-                height: 40,
+                width: 38,
+                height: 38,
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
@@ -542,7 +541,7 @@ class _MemberCard extends StatelessWidget {
                 child: Text(
                   name[0].toUpperCase(),
                   style: GoogleFonts.poppins(
-                    fontSize: 18,
+                    fontSize: 17,
                     fontWeight: FontWeight.bold,
                     color: color,
                   ),
@@ -551,11 +550,11 @@ class _MemberCard extends StatelessWidget {
               const Spacer(),
               // Rank crown or overdue badge
               if (rank == 0 && total > 0 && ratio >= 0.5)
-                const Text('🥇', style: TextStyle(fontSize: 16))
+                const Text('🥇', style: TextStyle(fontSize: 14))
               else if (overdueCount > 0)
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 6, vertical: 2),
+                      horizontal: 5, vertical: 2),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFF7070).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(6),
@@ -563,7 +562,7 @@ class _MemberCard extends StatelessWidget {
                   child: Text(
                     '!$overdueCount',
                     style: GoogleFonts.poppins(
-                        fontSize: 10,
+                        fontSize: 9,
                         fontWeight: FontWeight.bold,
                         color: const Color(0xFFFF7070)),
                   ),
@@ -574,7 +573,7 @@ class _MemberCard extends StatelessWidget {
           Text(
             name,
             style: GoogleFonts.poppins(
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: FontWeight.w700,
               color: AppColors.text,
             ),
@@ -596,7 +595,7 @@ class _MemberCard extends StatelessWidget {
               curve: Curves.easeOut,
               builder: (_, v, __) => LinearProgressIndicator(
                 value: v,
-                minHeight: 6,
+                minHeight: 5,
                 backgroundColor: color.withValues(alpha: 0.12),
                 valueColor: AlwaysStoppedAnimation<Color>(
                     allDone ? const Color(0xFF52C78B) : color),
