@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - FrontEnd
+  workflow_dispatch:
 
 permissions:
   contents: read
