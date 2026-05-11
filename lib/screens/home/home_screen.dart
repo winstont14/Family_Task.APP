@@ -12,6 +12,7 @@ import 'views/dashboard_view.dart';
 import 'views/feed_view.dart';
 import 'views/task_list_view.dart';
 import 'widgets/home_header.dart';
+import 'widgets/task_list_header.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,6 +24,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String? _selectedMemberId;
   int _navIndex = 0;
+  int _taskFilter = 0; // 0=All  1=Today  2=Pending
 
   @override
   Widget build(BuildContext context) {
@@ -51,14 +53,29 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            HomeHeader(
-              selectedMemberId: _selectedMemberId,
-              effectiveMemberId: effectiveMemberId,
-              showFilters: safeIndex == 1,
-              onMemberSelect: (id) => setState(() => _selectedMemberId = id),
-              onManageFamily: auth.canManageFamily ? _showFamilySheet : null,
-              onLogout: _logout,
-            ),
+            if (safeIndex == 1)
+              TaskListHeader(
+                selectedMemberId: _selectedMemberId,
+                effectiveMemberId: effectiveMemberId,
+                statusFilter: _taskFilter,
+                onStatusFilter: (f) => setState(() => _taskFilter = f),
+                onMemberSelect: (id) =>
+                    setState(() => _selectedMemberId = id),
+                onManageFamily:
+                    auth.canManageFamily ? _showFamilySheet : null,
+                onAddTask: () => _openAddTodo(),
+              )
+            else
+              HomeHeader(
+                selectedMemberId: _selectedMemberId,
+                effectiveMemberId: effectiveMemberId,
+                showFilters: false,
+                onMemberSelect: (id) =>
+                    setState(() => _selectedMemberId = id),
+                onManageFamily:
+                    auth.canManageFamily ? _showFamilySheet : null,
+                onLogout: _logout,
+              ),
             Expanded(
               child: IndexedStack(
                 index: safeIndex,
@@ -70,7 +87,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       _navIndex = 1;
                     }),
                   ),
-                  TaskListView(effectiveMemberId: effectiveMemberId),
+                  TaskListView(
+                    effectiveMemberId: effectiveMemberId,
+                    filter: _taskFilter,
+                  ),
                   if (!isChild) const FeedView(),
                 ],
               ),
@@ -103,7 +123,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
         ],
       ),
-      floatingActionButton: auth.canManageTasks
+      floatingActionButton: (auth.canManageTasks && safeIndex != 1)
           ? FloatingActionButton.extended(
               onPressed: _openAddTodo,
               icon: const Icon(Icons.add_rounded, size: 28),

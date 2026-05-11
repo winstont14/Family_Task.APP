@@ -9,8 +9,13 @@ import '../../../widgets/todo_card.dart';
 
 class TaskListView extends StatefulWidget {
   final String? effectiveMemberId;
+  final int filter; // 0=All  1=Today (overdue+today)  2=Pending (active only)
 
-  const TaskListView({super.key, required this.effectiveMemberId});
+  const TaskListView({
+    super.key,
+    required this.effectiveMemberId,
+    this.filter = 0,
+  });
 
   @override
   State<TaskListView> createState() => _TaskListViewState();
@@ -64,85 +69,134 @@ class _TaskListViewState extends State<TaskListView> {
 
     final total = active.length + completed.length;
     final hasAnything = total > 0 || suggested.isNotEmpty;
+    final filter = widget.filter;
+
+    // filter=1 (Today): overdue + today only
+    // filter=2 (Pending): active sections only (no completed)
+    final showUpcoming = filter == 0 || filter == 2;
+    final showCompleted = filter == 0;
+    final showSuggested = filter == 0 || filter == 2;
 
     if (!hasAnything) {
       return _EmptyTaskList(isChild: isChild);
     }
 
-    final allActiveDone =
-        overdue.isEmpty && todayTasks.isEmpty && upcoming.isEmpty;
+    final visibleOverdue = overdue; // always visible
+    final visibleToday = todayTasks; // always visible
+    final visibleUpcoming = showUpcoming ? upcoming : <Todo>[];
+    final visibleCompleted = showCompleted ? completed : <Todo>[];
+    final visibleSuggested = showSuggested ? suggested : <Todo>[];
+
+    final allActiveDone = visibleOverdue.isEmpty &&
+        visibleToday.isEmpty &&
+        visibleUpcoming.isEmpty;
+
+    final nothingVisible = visibleOverdue.isEmpty &&
+        visibleToday.isEmpty &&
+        visibleUpcoming.isEmpty &&
+        visibleCompleted.isEmpty &&
+        visibleSuggested.isEmpty;
+
+    if (nothingVisible) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                filter == 1 ? '✅' : '🌟',
+                style: const TextStyle(fontSize: 52),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                filter == 1
+                    ? 'Nothing due today!'
+                    : 'All caught up!',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.text,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                filter == 1
+                    ? 'No overdue or due-today tasks.'
+                    : 'No active tasks remaining.',
+                style: GoogleFonts.poppins(
+                    fontSize: 14, color: AppColors.subtitle),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
       children: [
-        // Progress banner
-        if (total > 0) ...[
-          _ProgressBanner(
-            done: completed.length,
-            total: total,
-            isChild: isChild,
-          ),
-          const SizedBox(height: 16),
-        ],
-
         // Needs Review
-        if (suggested.isNotEmpty) ...[
+        if (visibleSuggested.isNotEmpty) ...[
           _SectionHeader(
             label: 'Needs Review',
-            count: suggested.length,
+            count: visibleSuggested.length,
             color: const Color(0xFFFFAA57),
           ),
-          ...suggested.map((t) => TodoCard(todo: t)),
+          ...visibleSuggested.map((t) => TodoCard(todo: t)),
           const SizedBox(height: 4),
         ],
 
         // Overdue
-        if (overdue.isNotEmpty) ...[
+        if (visibleOverdue.isNotEmpty) ...[
           _SectionHeader(
             label: 'Overdue',
-            count: overdue.length,
+            count: visibleOverdue.length,
             color: AppColors.deleteRed,
           ),
-          ...overdue.map((t) => TodoCard(todo: t)),
+          ...visibleOverdue.map((t) => TodoCard(todo: t)),
           const SizedBox(height: 4),
         ],
 
         // Today
-        if (todayTasks.isNotEmpty) ...[
+        if (visibleToday.isNotEmpty) ...[
           _SectionHeader(
             label: 'Today',
-            count: todayTasks.length,
+            count: visibleToday.length,
             color: const Color(0xFFFFAA57),
           ),
-          ...todayTasks.map((t) => TodoCard(todo: t)),
+          ...visibleToday.map((t) => TodoCard(todo: t)),
           const SizedBox(height: 4),
         ],
 
         // Upcoming
-        if (upcoming.isNotEmpty) ...[
+        if (visibleUpcoming.isNotEmpty) ...[
           _SectionHeader(
             label: 'Upcoming',
-            count: upcoming.length,
+            count: visibleUpcoming.length,
             color: AppColors.primary,
           ),
-          ...upcoming.map((t) => TodoCard(todo: t)),
+          ...visibleUpcoming.map((t) => TodoCard(todo: t)),
           const SizedBox(height: 4),
         ],
 
-        // All-done celebration (active tasks cleared but completed exist)
-        if (allActiveDone && suggested.isEmpty && completed.isNotEmpty)
+        // All-done celebration
+        if (allActiveDone &&
+            visibleSuggested.isEmpty &&
+            visibleCompleted.isNotEmpty)
           const _AllDoneBanner(),
 
-        // Completed (collapsible)
-        if (completed.isNotEmpty) ...[
+        // Completed (collapsible, All filter only)
+        if (visibleCompleted.isNotEmpty) ...[
           _CompletedHeader(
-            count: completed.length,
+            count: visibleCompleted.length,
             expanded: _completedExpanded,
             onTap: () =>
                 setState(() => _completedExpanded = !_completedExpanded),
           ),
           if (_completedExpanded)
-            ...completed.map((t) => TodoCard(todo: t)),
+            ...visibleCompleted.map((t) => TodoCard(todo: t)),
         ],
       ],
     );
@@ -155,80 +209,6 @@ class _TaskListViewState extends State<TaskListView> {
       date.year == now.year &&
       date.month == now.month &&
       date.day == now.day;
-}
-
-// ── Progress banner ────────────────────────────────────────────────
-
-class _ProgressBanner extends StatelessWidget {
-  final int done;
-  final int total;
-  final bool isChild;
-
-  const _ProgressBanner({
-    required this.done,
-    required this.total,
-    required this.isChild,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final pct = total > 0 ? done / total : 0.0;
-    final allDone = done == total && total > 0;
-    final color =
-        allDone ? const Color(0xFF52C78B) : AppColors.primary;
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  isChild ? 'My Progress' : "Today's Progress",
-                  style: GoogleFonts.poppins(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.text,
-                  ),
-                ),
-              ),
-              Text(
-                allDone ? '🎉 All done!' : '$done / $total',
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: pct,
-              minHeight: 8,
-              backgroundColor: AppColors.background,
-              valueColor: AlwaysStoppedAnimation<Color>(color),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ── Section header ─────────────────────────────────────────────────
