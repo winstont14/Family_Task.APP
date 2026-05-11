@@ -12,110 +12,185 @@ import '../screens/add_todo/add_todo_screen.dart';
 
 class TodoCard extends StatelessWidget {
   final Todo todo;
-
   const TodoCard({super.key, required this.todo});
-
-  Color get _cardColor {
-    if (todo.isDone) return AppColors.done;
-    if (todo.colorValue != null) return Color(todo.colorValue!);
-    return AppColors.card;
-  }
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final family = context.watch<FamilyProvider>();
     final canManage = auth.canManageTasks;
+
+    final member = todo.assignedTo != null
+        ? family.findById(todo.assignedTo!)
+        : null;
+    final memberColor = member != null
+        ? Color(family.colorValueForMember(member.id))
+        : AppColors.primary;
+
+    // Left accent color: member color or task color or primary
+    final accentColor = todo.colorValue != null
+        ? Color(todo.colorValue!)
+        : memberColor;
 
     final card = GestureDetector(
       onLongPress: canManage ? () => _openEdit(context) : null,
-      child: Card(
-        color: _cardColor,
-        elevation: todo.isDone ? 0 : 2,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 48,
-                height: 48,
-                child: Checkbox(
-                  value: todo.isDone,
-                  onChanged: (_) =>
-                      context.read<TodoProvider>().toggleTodo(todo),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+        decoration: BoxDecoration(
+          color: todo.isDone
+              ? const Color(0xFFF7FBF7)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: const Color(0xFF4a4a4a).withValues(alpha: 0.08),
+            width: 1,
+          ),
+          boxShadow: todo.isDone
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Colored left accent bar
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  width: 5,
+                  color: todo.isDone
+                      ? const Color(0xFFB8D8BA)
+                      : accentColor,
                 ),
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      todo.title,
-                      style: GoogleFonts.poppins(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w500,
-                        color: todo.isDone
-                            ? AppColors.subtitle
-                            : AppColors.text,
-                        decoration: todo.isDone
-                            ? TextDecoration.lineThrough
-                            : null,
-                        decorationColor: AppColors.subtitle,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
+                // Content
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (todo.assignedTo != null) ...[
-                          _MemberBadge(memberId: todo.assignedTo!),
-                          const SizedBox(width: 8),
-                        ],
-                        if (!todo.isDone && todo.dueDate != null)
-                          Flexible(
-                              child: _CountdownBadge(
-                                  dueDate: todo.dueDate!))
-                        else
-                          Flexible(
-                            child: Text(
-                              _formatDate(todo.createdAt),
-                              style: GoogleFonts.poppins(
-                                fontSize: 13,
-                                color: AppColors.subtitle,
+                        // Round checkbox
+                        GestureDetector(
+                          onTap: () => context
+                              .read<TodoProvider>()
+                              .toggleTodo(todo),
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 220),
+                              width: 26,
+                              height: 26,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: todo.isDone
+                                    ? const Color(0xFFB8D8BA)
+                                    : Colors.transparent,
+                                border: Border.all(
+                                  color: todo.isDone
+                                      ? const Color(0xFF4CAF50)
+                                      : const Color(0xFFB0B0B0),
+                                  width: 2,
+                                ),
                               ),
+                              child: todo.isDone
+                                  ? const Icon(Icons.check_rounded,
+                                      size: 15,
+                                      color: Color(0xFF2E7D32))
+                                  : null,
                             ),
                           ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Task text + meta
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      todo.title,
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: todo.isDone
+                                            ? AppColors.subtitle
+                                            : AppColors.text,
+                                        decoration: todo.isDone
+                                            ? TextDecoration.lineThrough
+                                            : null,
+                                        decorationColor: AppColors.subtitle,
+                                      ),
+                                    ),
+                                  ),
+                                  if (todo.isDone)
+                                    const Padding(
+                                      padding:
+                                          EdgeInsets.only(left: 4),
+                                      child: Text('⭐',
+                                          style:
+                                              TextStyle(fontSize: 14)),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 4,
+                                children: [
+                                  if (member != null)
+                                    _MemberBadge(
+                                        member: member,
+                                        color: memberColor),
+                                  if (!todo.isDone &&
+                                      todo.dueDate != null)
+                                    _CountdownBadge(
+                                        dueDate: todo.dueDate!)
+                                  else if (todo.isDone &&
+                                      todo.dueDate != null)
+                                    _DateBadge(date: todo.dueDate!),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Action buttons
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (canManage && !todo.isDone)
+                              _ActionBtn(
+                                icon: Icons.edit_outlined,
+                                color: AppColors.subtitle,
+                                onTap: () => _openEdit(context),
+                              ),
+                            if (canManage)
+                              _ActionBtn(
+                                icon: Icons.delete_outline_rounded,
+                                color: AppColors.deleteRed,
+                                onTap: () => _confirmDelete(context),
+                              ),
+                          ],
+                        ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-              if (canManage && !todo.isDone)
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined,
-                      color: AppColors.subtitle),
-                  onPressed: () => _openEdit(context),
-                  iconSize: 24,
-                  padding: const EdgeInsets.all(12),
-                  constraints:
-                      const BoxConstraints(minWidth: 48, minHeight: 48),
-                ),
-              if (canManage)
-                IconButton(
-                  icon: const Icon(Icons.delete_outline_rounded,
-                      color: AppColors.deleteRed),
-                  onPressed: () => _confirmDelete(context),
-                  iconSize: 24,
-                  padding: const EdgeInsets.all(12),
-                  constraints:
-                      const BoxConstraints(minWidth: 48, minHeight: 48),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
 
-    // Only Admin/Parent can swipe-to-delete
     if (!canManage) return card;
 
     return Dismissible(
@@ -123,11 +198,11 @@ class TodoCard extends StatelessWidget {
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 24),
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        padding: const EdgeInsets.only(right: 28),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
         decoration: BoxDecoration(
           color: AppColors.deleteRed,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
         ),
         child: const Icon(Icons.delete_outline_rounded,
             color: Colors.white, size: 28),
@@ -135,15 +210,6 @@ class TodoCard extends StatelessWidget {
       onDismissed: (_) => context.read<TodoProvider>().deleteTodo(todo),
       child: card,
     );
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final isToday = date.year == now.year &&
-        date.month == now.month &&
-        date.day == now.day;
-    if (isToday) return 'Today ${DateFormat('h:mm a').format(date)}';
-    return DateFormat('MMM d, h:mm a').format(date);
   }
 
   void _openEdit(BuildContext context) {
@@ -159,15 +225,13 @@ class TodoCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16)),
         title: Text('Delete task?',
             style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
-        content: Text(
-          '"${todo.title}"',
-          style: GoogleFonts.poppins(
-              fontSize: 15, color: AppColors.subtitle),
-        ),
+        content: Text('"${todo.title}"',
+            style: GoogleFonts.poppins(
+                fontSize: 15, color: AppColors.subtitle)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -190,47 +254,68 @@ class TodoCard extends StatelessWidget {
   }
 }
 
-class _MemberBadge extends StatelessWidget {
-  final String memberId;
+// ── Small action icon button ─────────────────────────────────────────
 
-  const _MemberBadge({required this.memberId});
+class _ActionBtn extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  const _ActionBtn(
+      {required this.icon, required this.color, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final family = context.watch<FamilyProvider>();
-    final member = family.findById(memberId);
-    if (member == null) return const SizedBox.shrink();
-    final color = Color(family.colorValueForMember(memberId));
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Icon(icon, size: 20, color: color),
+      ),
+    );
+  }
+}
 
+// ── Member badge ─────────────────────────────────────────────────────
+
+class _MemberBadge extends StatelessWidget {
+  final dynamic member;
+  final Color color;
+  const _MemberBadge({required this.member, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(8),
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          CircleAvatar(
-            radius: 7,
-            backgroundColor: color,
+          Container(
+            width: 14,
+            height: 14,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color.withValues(alpha: 0.25),
+            ),
+            alignment: Alignment.center,
             child: Text(
               member.name[0].toUpperCase(),
-              style: const TextStyle(
-                fontSize: 8,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+              style: TextStyle(
+                  fontSize: 8,
+                  fontWeight: FontWeight.bold,
+                  color: color),
             ),
           ),
           const SizedBox(width: 4),
           Text(
             member.name,
             style: GoogleFonts.poppins(
-              fontSize: 11,
-              color: color,
-              fontWeight: FontWeight.w500,
-            ),
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: color),
           ),
         ],
       ),
@@ -238,9 +323,34 @@ class _MemberBadge extends StatelessWidget {
   }
 }
 
+// ── Date badge (for completed tasks) ────────────────────────────────
+
+class _DateBadge extends StatelessWidget {
+  final DateTime date;
+  const _DateBadge({required this.date});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.calendar_today_rounded,
+            size: 11, color: AppColors.subtitle),
+        const SizedBox(width: 3),
+        Text(
+          DateFormat('MMM d').format(date),
+          style: GoogleFonts.poppins(
+              fontSize: 11, color: AppColors.subtitle),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Countdown badge ──────────────────────────────────────────────────
+
 class _CountdownBadge extends StatefulWidget {
   final DateTime dueDate;
-
   const _CountdownBadge({required this.dueDate});
 
   @override
@@ -275,54 +385,42 @@ class _CountdownBadgeState extends State<_CountdownBadge> {
   @override
   Widget build(BuildContext context) {
     if (_remaining.isNegative) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.warning_amber_rounded,
-              size: 14, color: Colors.redAccent),
-          const SizedBox(width: 4),
-          Text(
-            'Overdue!',
-            style: GoogleFonts.poppins(
-              fontSize: 13,
-              color: Colors.redAccent,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      );
+      return _badge(
+          Icons.warning_amber_rounded, 'Overdue!', Colors.redAccent);
     }
-
     final h = _remaining.inHours;
     final m = _remaining.inMinutes.remainder(60);
     final s = _remaining.inSeconds.remainder(60);
-
-    final String label;
-    if (h > 0) {
-      label = '${h}h ${m}m ${s}s';
-    } else if (m > 0) {
-      label = '${m}m ${s}s';
-    } else {
-      label = '${s}s';
-    }
-
+    final label = h > 0
+        ? '${h}h ${m}m'
+        : m > 0
+            ? '${m}m ${s}s'
+            : '${s}s';
     final isUrgent = _remaining.inMinutes < 30;
-    final color = isUrgent ? Colors.orange.shade700 : AppColors.primary;
+    final color =
+        isUrgent ? Colors.orange.shade700 : AppColors.primary;
+    return _badge(Icons.timer_outlined, label, color);
+  }
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.timer_outlined, size: 14, color: color),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 13,
-            color: color,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
+  Widget _badge(IconData icon, String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 3),
+          Text(label,
+              style: GoogleFonts.poppins(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: color)),
+        ],
+      ),
     );
   }
 }

@@ -426,11 +426,17 @@ class _TaskList extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 100),
           children: [
             if (active.isNotEmpty) ...[
-              const SectionTitle(title: 'TODAY'),
+              SectionTitle(
+                  title: 'TODAY',
+                  count: active.length,
+                  emoji: '📅'),
               ...active.map((todo) => TodoCard(todo: todo)),
             ],
             if (completed.isNotEmpty) ...[
-              const SectionTitle(title: 'COMPLETED'),
+              SectionTitle(
+                  title: 'DONE',
+                  count: completed.length,
+                  emoji: '✅'),
               ...completed.map((todo) => TodoCard(todo: todo)),
             ],
           ],
