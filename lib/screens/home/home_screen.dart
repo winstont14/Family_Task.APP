@@ -618,9 +618,18 @@ class _TaskList extends StatelessWidget {
           return const EmptyState();
         }
 
+        final suggested = provider.suggestedTodos;
+
         return ListView(
           padding: const EdgeInsets.only(bottom: 100),
           children: [
+            if (suggested.isNotEmpty) ...[
+              SectionTitle(
+                  title: 'SUGGESTIONS',
+                  count: suggested.length,
+                  emoji: '💡'),
+              ...suggested.map((todo) => TodoCard(todo: todo)),
+            ],
             if (active.isNotEmpty) ...[
               SectionTitle(
                   title: 'TODAY',

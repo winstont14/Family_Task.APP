@@ -146,6 +146,8 @@ class TodoCard extends StatelessWidget {
                                 spacing: 6,
                                 runSpacing: 4,
                                 children: [
+                                  if (todo.isSuggestion == true)
+                                    _PendingBadge(),
                                   if (member != null)
                                     _MemberBadge(
                                         member: member,
@@ -157,6 +159,13 @@ class TodoCard extends StatelessWidget {
                                   else if (todo.isDone &&
                                       todo.dueDate != null)
                                     _DateBadge(date: todo.dueDate!),
+                                  if (todo.starRating != null &&
+                                      todo.starRating! > 0)
+                                    _StarsBadge(
+                                        stars: todo.starRating!),
+                                  if (todo.reward != null &&
+                                      todo.reward!.isNotEmpty)
+                                    _RewardBadge(text: todo.reward!),
                                 ],
                               ),
                             ],
@@ -166,7 +175,16 @@ class TodoCard extends StatelessWidget {
                         Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            if (canManage && !todo.isDone)
+                            if (canManage &&
+                                todo.isSuggestion == true) ...[
+                              _ActionBtn(
+                                icon: Icons.check_circle_outline_rounded,
+                                color: const Color(0xFF52C78B),
+                                onTap: () => context
+                                    .read<TodoProvider>()
+                                    .approveSuggestion(todo),
+                              ),
+                            ] else if (canManage && !todo.isDone)
                               _ActionBtn(
                                 icon: Icons.edit_outlined,
                                 color: AppColors.subtitle,
@@ -270,6 +288,87 @@ class _ActionBtn extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(6),
         child: Icon(icon, size: 20, color: color),
+      ),
+    );
+  }
+}
+
+// ── Pending approval badge ───────────────────────────────────────────
+
+class _PendingBadge extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFAA57).withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+            color: const Color(0xFFFFAA57).withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('💡', style: TextStyle(fontSize: 9)),
+          const SizedBox(width: 3),
+          Text('Pending',
+              style: GoogleFonts.poppins(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFFCC7700))),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Stars badge ───────────────────────────────────────────────────────
+
+class _StarsBadge extends StatelessWidget {
+  final int stars;
+  const _StarsBadge({required this.stars});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(
+        stars,
+        (_) => const Text('⭐', style: TextStyle(fontSize: 11)),
+      ),
+    );
+  }
+}
+
+// ── Reward badge ──────────────────────────────────────────────────────
+
+class _RewardBadge extends StatelessWidget {
+  final String text;
+  const _RewardBadge({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF3CD),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('🎁', style: TextStyle(fontSize: 9)),
+          const SizedBox(width: 3),
+          Text(
+            text,
+            style: GoogleFonts.poppins(
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF8B6914)),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }

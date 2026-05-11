@@ -23,19 +23,28 @@ class DashboardView extends StatelessWidget {
     final todos = context.watch<TodoProvider>();
     final family = context.watch<FamilyProvider>();
     final auth = context.watch<AuthProvider>();
+    final isChild = auth.isChild;
 
     final now = DateTime.now();
-    final allActive = todos.activeTodos;
-    final allDone = todos.completedTodos;
+
+    // Children see only their own tasks
+    final myId = isChild ? auth.currentUser?.id : null;
+    final allActive = isChild
+        ? todos.activeTodosForMember(myId)
+        : todos.activeTodos;
+    final allDone = isChild
+        ? todos.completedTodosForMember(myId)
+        : todos.completedTodos;
     final total = allActive.length + allDone.length;
 
     final overdue = allActive.where((t) =>
         t.dueDate != null && t.dueDate!.isBefore(now)).toList();
     final dueToday = allActive.where((t) =>
         t.dueDate != null && _isToday(t.dueDate!, now)).toList();
-    final unassigned = allActive.where((t) => t.assignedTo == null).length;
+    final unassigned = isChild
+        ? 0
+        : allActive.where((t) => t.assignedTo == null).length;
 
-    // Tasks with due dates, sorted earliest first
     final upNext = [...allActive]
       ..removeWhere((t) => t.dueDate == null)
       ..sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
@@ -47,8 +56,30 @@ class DashboardView extends StatelessWidget {
         _DateStrip(now: now),
         const SizedBox(height: 16),
 
-        // ── Family overview card ──────────────────────────────────
+        // ── Streak + Weekly Goal row ──────────────────────────────
+        Row(
+          children: [
+            Expanded(
+              child: _StreakCard(streak: todos.streakDays),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _WeeklyGoalCard(
+                completed: todos.completedThisWeek,
+                goal: family.weeklyGoal,
+                isAdmin: auth.canManageFamily,
+                onEditGoal: auth.canManageFamily
+                    ? () => _showGoalEditor(context, family)
+                    : null,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // ── Overview card ─────────────────────────────────────────
         _FamilyOverviewCard(
+          label: isChild ? 'My Progress' : 'Family Progress',
           done: allDone.length,
           total: total,
           overdueCount: overdue.length,
@@ -57,7 +88,7 @@ class DashboardView extends StatelessWidget {
         ),
         const SizedBox(height: 20),
 
-        // ── Quick stats row ───────────────────────────────────────
+        // ── Quick stats ───────────────────────────────────────────
         _QuickStatsRow(
           total: total,
           done: allDone.length,
@@ -66,14 +97,12 @@ class DashboardView extends StatelessWidget {
         ),
         const SizedBox(height: 20),
 
-        // ── Member progress cards ─────────────────────────────────
-        if (family.members.isNotEmpty) ...[
+        // ── Member cards (admin/parent only) ──────────────────────
+        if (!isChild && family.members.isNotEmpty) ...[
           _SectionHeader(label: 'Family Members', emoji: '👨‍👩‍👧‍👦'),
           const SizedBox(height: 10),
           _MemberGrid(
-            members: family.members
-                .map((m) => m)
-                .toList(),
+            members: family.members.toList(),
             todos: todos,
             family: family,
             isAdmin: auth.canManageTasks,
@@ -105,6 +134,79 @@ class DashboardView extends StatelessWidget {
       date.year == now.year &&
       date.month == now.month &&
       date.day == now.day;
+
+  void _showGoalEditor(BuildContext context, FamilyProvider family) {
+    int draft = family.weeklyGoal;
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20)),
+          title: Text('Weekly Goal',
+              style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('How many tasks should the family complete this week?',
+                  style: GoogleFonts.poppins(
+                      fontSize: 13, color: AppColors.subtitle)),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline_rounded),
+                    onPressed: draft > 1
+                        ? () => setS(() => draft--)
+                        : null,
+                    color: AppColors.primary,
+                    iconSize: 32,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '$draft',
+                    style: GoogleFonts.poppins(
+                      fontSize: 36,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline_rounded),
+                    onPressed: () => setS(() => draft++),
+                    color: AppColors.primary,
+                    iconSize: 32,
+                  ),
+                ],
+              ),
+              Text('tasks / week',
+                  style: GoogleFonts.poppins(
+                      fontSize: 13, color: AppColors.subtitle)),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel',
+                  style:
+                      GoogleFonts.poppins(color: AppColors.subtitle)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                context.read<FamilyProvider>().setWeeklyGoal(draft);
+                Navigator.pop(ctx);
+              },
+              child: Text('Save',
+                  style: GoogleFonts.poppins(
+                      fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // ── Date strip ────────────────────────────────────────────────────────
@@ -146,9 +248,160 @@ class _DateStrip extends StatelessWidget {
   }
 }
 
+// ── Streak card ───────────────────────────────────────────────────────
+
+class _StreakCard extends StatelessWidget {
+  final int streak;
+  const _StreakCard({required this.streak});
+
+  @override
+  Widget build(BuildContext context) {
+    final isHot = streak >= 3;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      decoration: BoxDecoration(
+        color: isHot
+            ? const Color(0xFFFFF3E0)
+            : AppColors.primary.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isHot
+              ? const Color(0xFFFFAA57).withValues(alpha: 0.5)
+              : AppColors.primary.withValues(alpha: 0.15),
+        ),
+      ),
+      child: Row(
+        children: [
+          Text(
+            streak > 0 ? '🔥' : '💤',
+            style: const TextStyle(fontSize: 28),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$streak day${streak == 1 ? '' : 's'}',
+                style: GoogleFonts.poppins(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isHot
+                      ? const Color(0xFFCC7700)
+                      : AppColors.text,
+                ),
+              ),
+              Text(
+                'Streak',
+                style: GoogleFonts.poppins(
+                    fontSize: 11, color: AppColors.subtitle),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Weekly goal card ──────────────────────────────────────────────────
+
+class _WeeklyGoalCard extends StatelessWidget {
+  final int completed;
+  final int goal;
+  final bool isAdmin;
+  final VoidCallback? onEditGoal;
+
+  const _WeeklyGoalCard({
+    required this.completed,
+    required this.goal,
+    required this.isAdmin,
+    this.onEditGoal,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final ratio = goal > 0 ? (completed / goal).clamp(0.0, 1.0) : 0.0;
+    final met = completed >= goal && goal > 0;
+
+    return GestureDetector(
+      onTap: onEditGoal,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: met
+              ? const Color(0xFFE8F5E9)
+              : const Color(0xFFEEF0FF),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: met
+                ? const Color(0xFF52C78B).withValues(alpha: 0.4)
+                : AppColors.primary.withValues(alpha: 0.2),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  met ? '🎯' : '📆',
+                  style: const TextStyle(fontSize: 18),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Weekly Goal',
+                    style: GoogleFonts.poppins(
+                        fontSize: 11, color: AppColors.subtitle),
+                  ),
+                ),
+                if (isAdmin)
+                  const Icon(Icons.edit_outlined,
+                      size: 14, color: AppColors.subtitle),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '$completed / $goal',
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: met
+                    ? const Color(0xFF2E7D32)
+                    : AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0, end: ratio),
+                duration: const Duration(milliseconds: 800),
+                curve: Curves.easeOut,
+                builder: (_, v, __) => LinearProgressIndicator(
+                  value: v,
+                  minHeight: 5,
+                  backgroundColor:
+                      AppColors.subtitle.withValues(alpha: 0.15),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    met
+                        ? const Color(0xFF52C78B)
+                        : AppColors.primary,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ── Family overview card ──────────────────────────────────────────────
 
 class _FamilyOverviewCard extends StatelessWidget {
+  final String label;
   final int done;
   final int total;
   final int overdueCount;
@@ -156,6 +409,7 @@ class _FamilyOverviewCard extends StatelessWidget {
   final int unassignedCount;
 
   const _FamilyOverviewCard({
+    required this.label,
     required this.done,
     required this.total,
     required this.overdueCount,
@@ -196,7 +450,7 @@ class _FamilyOverviewCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  allDone ? '🎉 All done today!' : 'Family Progress',
+                  allDone ? '🎉 All done today!' : label,
                   style: GoogleFonts.poppins(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,

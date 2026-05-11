@@ -25,6 +25,18 @@ class Todo extends HiveObject {
   @HiveField(6)
   String? assignedTo; // FamilyMember id
 
+  @HiveField(7)
+  String? reward; // e.g. "30 min screen time"
+
+  @HiveField(8)
+  int? starRating; // task difficulty 1–5
+
+  @HiveField(9)
+  bool? isSuggestion; // child-suggested, awaiting parent approval
+
+  @HiveField(10)
+  DateTime? completedAt;
+
   Todo({
     required this.id,
     required this.title,
@@ -33,5 +45,9 @@ class Todo extends HiveObject {
     this.dueDate,
     this.colorValue,
     this.assignedTo,
+    this.reward,
+    this.starRating,
+    this.isSuggestion,
+    this.completedAt,
   });
 }

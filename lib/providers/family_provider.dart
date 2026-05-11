@@ -19,10 +19,12 @@ class FamilyProvider extends ChangeNotifier {
   List<FamilyMember> _members = [];
   String _familyName = 'My Family';
   String _familyIcon = '🏠';
+  int _weeklyGoal = 5;
 
   List<FamilyMember> get members => List.unmodifiable(_members);
   String get familyName => _familyName;
   String get familyIcon => _familyIcon;
+  int get weeklyGoal => _weeklyGoal;
   bool get hasAdmin => _members.any((m) => m.role == 'admin');
 
   int colorValueForMember(String id) {
@@ -46,6 +48,8 @@ class FamilyProvider extends ChangeNotifier {
         box.get(AppConstants.familyNameKey, defaultValue: 'My Family') as String;
     _familyIcon =
         box.get(AppConstants.familyIconKey, defaultValue: '🏠') as String;
+    _weeklyGoal =
+        box.get(AppConstants.weeklyGoalKey, defaultValue: 5) as int;
     notifyListeners();
   }
 
@@ -88,6 +92,14 @@ class FamilyProvider extends ChangeNotifier {
     final box = Hive.box(AppConstants.settingsBox);
     await box.put(AppConstants.familyIconKey, icon);
     _familyIcon = icon;
+    notifyListeners();
+  }
+
+  Future<void> setWeeklyGoal(int goal) async {
+    if (goal < 1) return;
+    final box = Hive.box(AppConstants.settingsBox);
+    await box.put(AppConstants.weeklyGoalKey, goal);
+    _weeklyGoal = goal;
     notifyListeners();
   }
 

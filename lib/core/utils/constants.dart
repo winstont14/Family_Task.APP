@@ -6,4 +6,5 @@ class AppConstants {
   static const String familyNameKey = 'familyName';
   static const String currentUserKey = 'currentUserId';
   static const String familyIconKey = 'familyIcon';
+  static const String weeklyGoalKey = 'weeklyGoal';
 }
