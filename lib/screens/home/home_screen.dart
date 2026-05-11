@@ -13,6 +13,9 @@ import '../../widgets/progress_widget.dart';
 import '../../widgets/section_title.dart';
 import '../../widgets/todo_card.dart';
 import '../add_todo/add_todo_screen.dart';
+import 'views/group_list_view.dart';
+import 'views/calendar_view.dart';
+import 'views/notion_view.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,17 +26,16 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String? _selectedMemberId;
+  int _navIndex = 0;
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final family = context.watch<FamilyProvider>();
 
-    // Children always see their own tasks only
     final effectiveMemberId =
         auth.isChild ? auth.currentUser?.id : _selectedMemberId;
 
-    // Reset filter if selected member was deleted
     if (_selectedMemberId != null &&
         family.findById(_selectedMemberId!) == null) {
       _selectedMemberId = null;
@@ -48,36 +50,77 @@ class _HomeScreenState extends State<HomeScreen> {
               onManageFamily: auth.canManageFamily ? _showFamilySheet : null,
               onLogout: _logout,
             ),
-            Consumer<TodoProvider>(
-              builder: (context, todos, _) {
-                final active =
-                    todos.activeTodosForMember(effectiveMemberId);
-                final done =
-                    todos.completedTodosForMember(effectiveMemberId);
-                final total = active.length + done.length;
-                if (total == 0) return const SizedBox.shrink();
-                return Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
-                  child: ProgressWidget(
-                      completed: done.length, total: total),
-                );
-              },
-            ),
-            // Member filter chips — only Admin and Parent see them
-            if (auth.canManageTasks && family.members.isNotEmpty)
-              _MemberFilterChips(
-                selectedMemberId: _selectedMemberId,
-                onSelect: (id) => setState(() => _selectedMemberId = id),
-                onManage: auth.canManageFamily ? _showFamilySheet : null,
+            // List-only extras: progress bar + member chips
+            if (_navIndex == 0) ...[
+              Consumer<TodoProvider>(
+                builder: (context, todos, _) {
+                  final active =
+                      todos.activeTodosForMember(effectiveMemberId);
+                  final done =
+                      todos.completedTodosForMember(effectiveMemberId);
+                  final total = active.length + done.length;
+                  if (total == 0) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+                    child: ProgressWidget(
+                        completed: done.length, total: total),
+                  );
+                },
               ),
+              if (auth.canManageTasks && family.members.isNotEmpty)
+                _MemberFilterChips(
+                  selectedMemberId: _selectedMemberId,
+                  onSelect: (id) =>
+                      setState(() => _selectedMemberId = id),
+                  onManage:
+                      auth.canManageFamily ? _showFamilySheet : null,
+                ),
+            ],
             Expanded(
-              child: _TaskList(effectiveMemberId: effectiveMemberId),
+              child: IndexedStack(
+                index: _navIndex,
+                children: [
+                  _TaskList(effectiveMemberId: effectiveMemberId),
+                  GroupListView(onAddTask: _openAddTodo),
+                  CalendarView(onAddTask: _openAddTodo),
+                  NotionView(onAddTask: _openAddTodo),
+                ],
+              ),
             ),
           ],
         ),
       ),
-      // FAB only for Admin and Parent
-      floatingActionButton: auth.canManageTasks
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _navIndex,
+        onTap: (i) => setState(() => _navIndex = i),
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.subtitle,
+        selectedLabelStyle: GoogleFonts.poppins(
+            fontSize: 11, fontWeight: FontWeight.w600),
+        unselectedLabelStyle: GoogleFonts.poppins(fontSize: 11),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.list_rounded),
+            label: 'List',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.group_rounded),
+            label: 'Groups',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_month_rounded),
+            label: 'Calendar',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.article_outlined),
+            label: 'Notion',
+          ),
+        ],
+      ),
+      // FAB only on List + Notion tabs, and only for Admin/Parent
+      floatingActionButton: auth.canManageTasks &&
+              (_navIndex == 0 || _navIndex == 3)
           ? FloatingActionButton.extended(
               onPressed: _openAddTodo,
               icon: const Icon(Icons.add_rounded, size: 28),
