@@ -5,6 +5,343 @@ import '../../../core/theme/colors.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/todo_provider.dart';
 
+// ── Unified dashboard summary card ───────────────────────────────────
+//
+// Replaces the old StreakCard + WeeklyGoalCard + FamilyOverviewCard +
+// QuickStatsRow with a single clean card. Shows everything in one place.
+
+class DashboardSummaryCard extends StatelessWidget {
+  final String label;
+  final int done;
+  final int total;
+  final int streak;
+  final int weeklyCompleted;
+  final int weeklyGoal;
+  final int overdueCount;
+  final int dueTodayCount;
+  final int unassignedCount;
+  final bool isAdmin;
+  final VoidCallback? onEditGoal;
+  // Child-only XP fields (null = not a child)
+  final int? xp;
+
+  const DashboardSummaryCard({
+    super.key,
+    required this.label,
+    required this.done,
+    required this.total,
+    required this.streak,
+    required this.weeklyCompleted,
+    required this.weeklyGoal,
+    required this.overdueCount,
+    required this.dueTodayCount,
+    required this.unassignedCount,
+    required this.isAdmin,
+    this.onEditGoal,
+    this.xp,
+  });
+
+  static const _levelTitles = [
+    ('🌱', 'Sprout'),
+    ('⭐', 'Rising Star'),
+    ('🌟', 'Star'),
+    ('💫', 'Super Star'),
+    ('🏆', 'Champion'),
+    ('👑', 'Legend'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final ratio = total > 0 ? done / total : 0.0;
+    final allDone = done == total && total > 0;
+    final pct = (ratio * 100).round();
+    final streakHot = streak >= 3;
+    final weekMet = weeklyCompleted >= weeklyGoal && weeklyGoal > 0;
+
+    // XP data for child section
+    final childXp = xp;
+    final level = childXp != null ? TodoProvider.levelFromXp(childXp) : 0;
+    final xpInLevel =
+        childXp != null ? TodoProvider.xpInCurrentLevel(childXp) : 0;
+    final xpRatio = xpInLevel / 100.0;
+    final levelIdx =
+        childXp != null ? (level - 1).clamp(0, _levelTitles.length - 1) : 0;
+    final (lvlEmoji, lvlTitle) =
+        childXp != null ? _levelTitles[levelIdx] : ('', '');
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Child: XP level strip ──────────────────────────────
+          if (childXp != null) ...[
+            Container(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF9B8FF5), Color(0xFFFF6B9D)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Text(lvlEmoji,
+                      style: const TextStyle(fontSize: 24)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              'Level $level · $lvlTitle',
+                              style: GoogleFonts.poppins(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              '$childXp XP',
+                              style: GoogleFonts.poppins(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white
+                                    .withValues(alpha: 0.9),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 5),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(3),
+                          child: TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0, end: xpRatio),
+                            duration: const Duration(milliseconds: 900),
+                            curve: Curves.easeOut,
+                            builder: (_, v, __) => LinearProgressIndicator(
+                              value: v,
+                              minHeight: 5,
+                              backgroundColor:
+                                  Colors.white.withValues(alpha: 0.25),
+                              valueColor:
+                                  const AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '$xpInLevel/100 XP · ${100 - xpInLevel} to Level ${level + 1}',
+                          style: GoogleFonts.poppins(
+                            fontSize: 10,
+                            color: Colors.white.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+
+          // ── Progress header ────────────────────────────────────
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  allDone ? '🎉 All done today!' : label,
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.text,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 3),
+                decoration: BoxDecoration(
+                  color: allDone
+                      ? const Color(0xFF52C78B)
+                      : AppColors.primary,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  '$pct%',
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 3),
+          Text(
+            total == 0
+                ? 'No tasks yet — add one!'
+                : '$done of $total tasks completed',
+            style: GoogleFonts.poppins(
+                fontSize: 12, color: AppColors.subtitle),
+          ),
+          const SizedBox(height: 10),
+
+          // ── Progress bar ──────────────────────────────────────
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: ratio),
+              duration: const Duration(milliseconds: 900),
+              curve: Curves.easeOut,
+              builder: (_, v, __) => LinearProgressIndicator(
+                value: v,
+                minHeight: 9,
+                backgroundColor:
+                    AppColors.subtitle.withValues(alpha: 0.1),
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  allDone
+                      ? const Color(0xFF52C78B)
+                      : AppColors.primary,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // ── Divider ───────────────────────────────────────────
+          Container(
+              height: 1,
+              color: AppColors.subtitle.withValues(alpha: 0.08)),
+          const SizedBox(height: 12),
+
+          // ── Stats chips row ───────────────────────────────────
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              // Streak
+              _StatChip(
+                emoji: streakHot ? '🔥' : '💤',
+                label: '$streak day${streak == 1 ? '' : 's'}',
+                sublabel: 'streak',
+                color: streakHot
+                    ? const Color(0xFFFF9800)
+                    : AppColors.subtitle,
+              ),
+              // Weekly goal (tappable for admin)
+              GestureDetector(
+                onTap: onEditGoal,
+                child: _StatChip(
+                  emoji: weekMet ? '🎯' : '📆',
+                  label: '$weeklyCompleted/$weeklyGoal',
+                  sublabel: isAdmin ? 'goal ✏️' : 'weekly',
+                  color: weekMet
+                      ? const Color(0xFF52C78B)
+                      : AppColors.primary,
+                ),
+              ),
+              if (overdueCount > 0)
+                _StatChip(
+                  emoji: '⚠️',
+                  label: '$overdueCount',
+                  sublabel: 'overdue',
+                  color: AppColors.deleteRed,
+                ),
+              if (dueTodayCount > 0)
+                _StatChip(
+                  emoji: '📅',
+                  label: '$dueTodayCount',
+                  sublabel: 'today',
+                  color: const Color(0xFFFFAA57),
+                ),
+              if (unassignedCount > 0)
+                _StatChip(
+                  emoji: '👤',
+                  label: '$unassignedCount',
+                  sublabel: 'free',
+                  color: AppColors.subtitle,
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatChip extends StatelessWidget {
+  final String emoji;
+  final String label;
+  final String sublabel;
+  final Color color;
+
+  const _StatChip({
+    required this.emoji,
+    required this.label,
+    required this.sublabel,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 14)),
+          const SizedBox(width: 6),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              Text(
+                sublabel,
+                style: GoogleFonts.poppins(
+                  fontSize: 9,
+                  color: AppColors.subtitle,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ── XP / Level card (child only) ─────────────────────────────────────
 
 class XpLevelCard extends StatelessWidget {

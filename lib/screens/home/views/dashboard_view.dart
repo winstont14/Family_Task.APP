@@ -25,7 +25,6 @@ class DashboardView extends StatelessWidget {
     final family = context.watch<FamilyProvider>();
     final auth = context.watch<AuthProvider>();
     final isChild = auth.isChild;
-
     final now = DateTime.now();
 
     final myId = isChild ? auth.currentUser?.id : null;
@@ -49,68 +48,41 @@ class DashboardView extends StatelessWidget {
       ..sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
 
     final pendingCount = todos.suggestedTodos.length;
-    final myXp = isChild
-        ? todos.xpForMember(auth.currentUser?.id)
-        : 0;
+    final myXp = isChild ? todos.xpForMember(auth.currentUser?.id) : null;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
       children: [
+        // ── Date ─────────────────────────────────────────────────
         DateStrip(now: now),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
 
-        // ── Child: XP / Level card ────────────────────────────────
-        if (isChild) ...[
-          XpLevelCard(xp: myXp),
-          const SizedBox(height: 16),
-        ],
-
-        // ── Parent/Admin: pending approvals ───────────────────────
+        // ── Pending approvals banner (parent/admin) ───────────────
         if (!isChild && pendingCount > 0) ...[
           PendingApprovalsBanner(count: pendingCount),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
         ],
 
-        // ── Streak + Weekly Goal ──────────────────────────────────
-        Row(
-          children: [
-            Expanded(child: StreakCard(streak: todos.streakDays)),
-            const SizedBox(width: 10),
-            Expanded(
-              child: WeeklyGoalCard(
-                completed: todos.completedThisWeek,
-                goal: family.weeklyGoal,
-                isAdmin: auth.canManageFamily,
-                onEditGoal: auth.canManageFamily
-                    ? () => _showGoalEditor(context, family)
-                    : null,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-
-        // ── Overview card ─────────────────────────────────────────
-        FamilyOverviewCard(
+        // ── Unified summary card ──────────────────────────────────
+        DashboardSummaryCard(
           label: isChild ? 'My Progress' : 'Family Progress',
           done: allDone.length,
           total: total,
+          streak: todos.streakDays,
+          weeklyCompleted: todos.completedThisWeek,
+          weeklyGoal: family.weeklyGoal,
           overdueCount: overdue.length,
           dueTodayCount: dueToday.length,
           unassignedCount: unassigned,
+          isAdmin: auth.canManageFamily,
+          onEditGoal: auth.canManageFamily
+              ? () => _showGoalEditor(context, family)
+              : null,
+          xp: myXp,
         ),
         const SizedBox(height: 20),
 
-        // ── Quick stats ───────────────────────────────────────────
-        QuickStatsRow(
-          total: total,
-          done: allDone.length,
-          overdue: overdue.length,
-          dueToday: dueToday.length,
-        ),
-        const SizedBox(height: 20),
-
-        // ── Member cards (admin/parent only) ──────────────────────
+        // ── Family members (parent/admin only) ────────────────────
         if (!isChild && family.members.isNotEmpty) ...[
           const SectionHeader(label: 'Family Members', emoji: '👨‍👩‍👧‍👦'),
           const SizedBox(height: 10),
