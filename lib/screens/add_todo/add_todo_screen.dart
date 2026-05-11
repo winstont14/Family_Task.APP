@@ -421,7 +421,7 @@ class _SuggestToggle extends StatelessWidget {
             Switch(
               value: value,
               onChanged: onChange,
-              activeColor: const Color(0xFFFFAA57),
+              activeThumbColor: const Color(0xFFFFAA57),
             ),
           ],
         ),
