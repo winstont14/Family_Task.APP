@@ -1,0 +1,71 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter --version)",
+      "Read(//Users/ananda/development/flutter/bin/**)",
+      "Read(//Users/ananda/flutter/bin/**)",
+      "Read(//usr/local/**)",
+      "Bash(brew install *)",
+      "Bash(flutter run *)",
+      "Bash(gh auth *)",
+      "Bash(flutter analyze *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(lsof -iTCP -sTCP:LISTEN -n)",
+      "Bash(awk '{print $9}')",
+      "Bash(flutter build *)",
+      "Bash(grep -v \"^  info\\\\|Downloading\\\\|newer versions\\\\|Try \\\\`flutter\\\\|Got dep\\\\|Resolving\\\\| available\")",
+      "Bash(gh run *)",
+      "Bash(open \"http://localhost:53874\")",
+      "Bash(open -a \"Google Chrome\" \"http://localhost:53874\")",
+      "Bash(pkill -f \"flutter run\")",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(xargs kill *)",
+      "Bash(nohup flutter *)",
+      "Bash(echo \"PID: $!\")",
+      "Read(//private/tmp/**)",
+      "Bash(dart run *)",
+      "Bash(flutter devices *)",
+      "Bash(git rm *)",
+      "Skill(update-config)",
+      "Bash(bash -c ' *)",
+      "Bash(python3 -m http.server 8080)",
+      "Bash(curl -s -o /dev/null -w \"Server status: %{http_code}\\\\n\" http://localhost:8080)",
+      "Bash(pkill -f \"python3 -m http.server 8080\")",
+      "Bash(curl -s -o /dev/null -w \"Server: %{http_code}\\\\n\" http://localhost:8080)",
+      "Bash(node *)",
+      "Bash(npx playwright *)",
+      "Bash(git -C /Users/ananda/Documents/ToDoAPP status)",
+      "Bash(git -C /Users/ananda/Documents/ToDoAPP log --oneline -5)",
+      "Bash(git *)",
+      "Bash(open *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // \"\"' | { read -r f; echo \"$f\" | grep -qE '/lib/.*\\.dart$' && jq -n --arg f \"$f\" '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":(\"⚠️ Dart source changed: \" + $f + \"\\nRemember: ask the user if they want to update testcase.md and playwright_tests/ to cover this change.\")}}' || true; }",
+            "statusMessage": "Checking if test update needed…"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if curl -sf http://localhost:8080 > /dev/null 2>&1 && [ -d /Users/ananda/Documents/ToDoAPP/playwright_tests/node_modules ]; then result=$(cd /Users/ananda/Documents/ToDoAPP/playwright_tests && npm test 2>&1 | tail -15); jq -n --arg r \"$result\" '{\"systemMessage\": (\"🎭 Playwright results:\\n\" + $r)}'; else echo '{\"systemMessage\": \"⏭️ Playwright skipped — app server not running on :8080. Start with: cd build/web && python3 -m http.server 8080, then re-run npm test in playwright_tests/\"}'; fi",
+            "timeout": 120,
+            "statusMessage": "Running Playwright tests…"
+          }
+        ]
+      }
+    ]
+  }
+}
