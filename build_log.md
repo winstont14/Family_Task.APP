@@ -170,3 +170,40 @@ Created with: commands, architecture overview, data flow, and key decisions.
 - Role hierarchy enforced in UI only (Flutter is not a security boundary for a local app)
 - Admin setup screen shown when `!family.hasAdmin` — first time ever, or after all admins deleted
 - Child view: filter chips hidden (redundant), FAB hidden, edit/delete stripped from cards; toggle still available on their tasks
+
+---
+
+### Step 9 — User Activity Database for Login Events (v3.1.0) — 2026-05-13
+
+**Goal:** Prepare persistent auth activity data for upcoming login-page enhancements.
+
+**New files:**
+- `lib/services/user_activity_service.dart`
+  - Adds `log(...)` API for activity writes into Hive `user_activity` box.
+  - Stores map-based records to keep schema flexible for future UI reporting.
+
+**Files changed:**
+- `lib/core/utils/constants.dart`
+  - Added `AppConstants.userActivityBox = 'user_activity'`.
+- `lib/main.dart`
+  - Opens the new Hive box during app startup.
+- `lib/providers/auth_provider.dart`
+  - Logs `login_success` on successful session creation.
+  - Logs `logout` before clearing session.
+  - Adds `logFailedLogin(...)` to record failed PIN attempts.
+- `lib/screens/auth/login_screen.dart`
+  - PIN verification now logs `login_failed` (reason: `wrong_pin`) when PIN does not match.
+
+**Event record shape (stored in Hive):**
+- `event` (`login_success` | `login_failed` | `logout`)
+- `userId`
+- `username`
+- `success` (bool)
+- `source` (e.g. `login_screen`, `pin_dialog`, `home_screen`)
+- `reason` (optional)
+- `createdAt` (ISO-8601 string timestamp)
+
+**Design decisions:**
+- Used a dedicated Hive box instead of overloading `settings` to keep auth audit data isolated.
+- Kept event schema map-based (no adapter) to allow future expansion without migration churn.
+- Logged only auth-relevant events now; other user activity can be added later via the same service.

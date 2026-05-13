@@ -144,7 +144,8 @@ class _MemberCard extends StatelessWidget {
             Container(
               width: 56,
               height: 56,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: avatarBg),
+              decoration:
+                  BoxDecoration(shape: BoxShape.circle, color: avatarBg),
               alignment: Alignment.center,
               child: Text(
                 member.name[0].toUpperCase(),
@@ -257,8 +258,8 @@ class _DashedRoundedBorderPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     final rrect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(strokeWidth / 2, strokeWidth / 2,
-          size.width - strokeWidth, size.height - strokeWidth),
+      Rect.fromLTWH(strokeWidth / 2, strokeWidth / 2, size.width - strokeWidth,
+          size.height - strokeWidth),
       Radius.circular(radius),
     );
 
@@ -304,8 +305,10 @@ class _RolePill extends StatelessWidget {
     }
 
     return switch (role) {
-      'admin' => _pill('👑 Admin', const Color(0xFFFFF3CD), const Color(0xFF8B6914)),
-      'parent' => _pill('👔 Parent', const Color(0xFFDCEEFD), const Color(0xFF1A6EA8)),
+      'admin' =>
+        _pill('👑 Admin', const Color(0xFFFFF3CD), const Color(0xFF8B6914)),
+      'parent' =>
+        _pill('👔 Parent', const Color(0xFFDCEEFD), const Color(0xFF1A6EA8)),
       _ => _pill('🌟 Kid', const Color(0xFFD4F1E4), const Color(0xFF1A7A4A)),
     };
   }
@@ -355,11 +358,12 @@ class _PinDialogState extends State<_PinDialog> {
     setState(() => _entered = _entered.substring(0, _entered.length - 1));
   }
 
-  void _verify() {
+  Future<void> _verify() async {
     if (_entered == widget.member.pin) {
       Navigator.pop(context);
-      context.read<AuthProvider>().login(widget.member);
+      await context.read<AuthProvider>().login(widget.member);
     } else {
+      await context.read<AuthProvider>().logFailedLogin(member: widget.member);
       setState(() {
         _entered = '';
         _error = true;
@@ -420,7 +424,8 @@ class _PinDialogState extends State<_PinDialog> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(3, (col) {
                   final digit = (row * 3 + col + 1).toString();
-                  return _DigitButton(digit: digit, onTap: () => _onDigit(digit));
+                  return _DigitButton(
+                      digit: digit, onTap: () => _onDigit(digit));
                 }),
               );
             }),
@@ -622,8 +627,10 @@ class _AdminSetupScreenState extends State<_AdminSetupScreen> {
                 spacing: 6,
                 runSpacing: 6,
                 children: [
-                  _ChildChip(initial: 'E', name: 'Emma', tone: Color(0xFFC9E4CA)),
-                  _ChildChip(initial: 'L', name: 'Leo', tone: Color(0xFFF6CFB8)),
+                  _ChildChip(
+                      initial: 'E', name: 'Emma', tone: Color(0xFFC9E4CA)),
+                  _ChildChip(
+                      initial: 'L', name: 'Leo', tone: Color(0xFFF6CFB8)),
                   _AddChildChip(),
                 ],
               ),
@@ -733,8 +740,8 @@ class _ThinInput extends StatelessWidget {
       style: GoogleFonts.poppins(fontSize: 15, color: const Color(0xFF1f1f1f)),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: GoogleFonts.poppins(
-            fontSize: 14, color: const Color(0xFF8a8a8a)),
+        hintStyle:
+            GoogleFonts.poppins(fontSize: 14, color: const Color(0xFF8a8a8a)),
         prefixIcon: Icon(prefixIcon,
             color: hasError ? Colors.redAccent : const Color(0xFF8a8a8a),
             size: 19),
@@ -774,27 +781,34 @@ class _ChildChip extends StatelessWidget {
   final String initial;
   final String name;
   final Color tone;
-  const _ChildChip({required this.initial, required this.name, required this.tone});
+  const _ChildChip(
+      {required this.initial, required this.name, required this.tone});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFF4a4a4a).withValues(alpha: 0.35), width: 1.2),
+        border: Border.all(
+            color: const Color(0xFF4a4a4a).withValues(alpha: 0.35), width: 1.2),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Container(
-          width: 20, height: 20,
+          width: 20,
+          height: 20,
           decoration: BoxDecoration(shape: BoxShape.circle, color: tone),
           alignment: Alignment.center,
           child: Text(initial,
-              style: GoogleFonts.poppins(fontSize: 10, fontWeight: FontWeight.bold,
+              style: GoogleFonts.poppins(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
                   color: const Color(0xFF4a4a4a))),
         ),
         const SizedBox(width: 5),
-        Text(name, style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFF1f1f1f))),
+        Text(name,
+            style: GoogleFonts.poppins(
+                fontSize: 11, color: const Color(0xFF1f1f1f))),
       ]),
     );
   }
@@ -816,7 +830,8 @@ class _AddChildChip extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         child: Text('+ add another',
-            style: GoogleFonts.poppins(fontSize: 11, color: const Color(0xFF8a8a8a))),
+            style: GoogleFonts.poppins(
+                fontSize: 11, color: const Color(0xFF8a8a8a))),
       ),
     );
   }
@@ -829,6 +844,5 @@ class RoleBadge extends StatelessWidget {
   const RoleBadge({super.key, required this.role, this.hasPin = false});
 
   @override
-  Widget build(BuildContext context) =>
-      _RolePill(role: role, hasPin: hasPin);
+  Widget build(BuildContext context) => _RolePill(role: role, hasPin: hasPin);
 }

@@ -143,3 +143,40 @@ int colorValueForMember(String id) {
   return kMemberColorValues[idx < 0 ? 0 : idx % kMemberColorValues.length];
 }
 ```
+
+---
+
+## Skill: Login Activity Database Tracking (v3.1.0)
+
+### What this skill does
+
+Adds a dedicated local database store for auth activity so future login pages and admin audit views can read real login history.
+
+### When to use
+
+- The app has login/logout and needs persistent activity tracking.
+- You want telemetry for local auth events (success, failed PIN, logout) without adding a backend.
+
+### Steps this skill follows
+
+1. Add a new Hive box constant (for example `user_activity`).
+2. Open the box at startup in `main.dart`.
+3. Create `UserActivityService` to write event records with timestamp.
+4. Instrument auth flows in `AuthProvider` (`login`, `logout`) and login UI PIN failure path.
+5. Keep the schema flexible with map records:
+   - `event`, `userId`, `username`, `success`, `source`, `reason`, `createdAt`.
+6. Append implementation notes in `build_log.md`.
+
+### Example event record
+
+```dart
+{
+  'event': 'login_failed',
+  'userId': member.id,
+  'username': member.name,
+  'success': false,
+  'source': 'pin_dialog',
+  'reason': 'wrong_pin',
+  'createdAt': DateTime.now().toIso8601String(),
+}
+```

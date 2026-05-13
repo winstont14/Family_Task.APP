@@ -29,6 +29,7 @@ void main() async {
   await Hive.openBox<Todo>(AppConstants.todosBox);
   await Hive.openBox<FamilyMember>(AppConstants.membersBox);
   await Hive.openBox(AppConstants.settingsBox);
+  await Hive.openBox(AppConstants.userActivityBox);
   await NotificationService.initialize();
   runApp(const MyApp());
 }
