@@ -170,3 +170,66 @@ Created with: commands, architecture overview, data flow, and key decisions.
 - Role hierarchy enforced in UI only (Flutter is not a security boundary for a local app)
 - Admin setup screen shown when `!family.hasAdmin` — first time ever, or after all admins deleted
 - Child view: filter chips hidden (redundant), FAB hidden, edit/delete stripped from cards; toggle still available on their tasks
+
+---
+
+### Step 9 — REST API Backend (v1.0.0) — 2026-05-13
+
+**Goal:** Cloud sync / multi-device support for the Flutter family workspace.
+
+**Tech stack:**
+- Node.js + Express (no framework overhead)
+- `node:sqlite` built-in (Node 22.5+) — no native compilation, avoids `better-sqlite3` C++20 build failure on Node 25
+- `bcryptjs` — PIN hashing (PINs stored plain in Hive; backend hashes them)
+- `jsonwebtoken` — stateless JWT sessions (7-day expiry by default)
+
+**Files created:**
+| File | Purpose |
+|------|---------|
+| `Backend/package.json` | Dependencies: express, bcryptjs, jsonwebtoken, cors, dotenv |
+| `Backend/.env.example` | PORT, JWT_SECRET, JWT_EXPIRES_IN, DB_PATH |
+| `Backend/.gitignore` | Excludes node_modules/, .env, data/*.db |
+| `Backend/src/index.js` | Express entry point; mounts all routes; error handler |
+| `Backend/src/db/database.js` | Opens SQLite DB; creates tables: `family`, `members`, `todos` |
+| `Backend/src/utils/jwt.js` | `sign(payload)` / `verify(token)` helpers |
+| `Backend/src/middleware/auth.js` | `authenticate` (Bearer JWT) + `requireRole(...roles)` middleware |
+| `Backend/src/routes/auth.js` | `POST /setup`, `POST /login`, `POST /logout`, `GET /me` |
+| `Backend/src/routes/members.js` | CRUD `/members` — admin only for create/update/delete |
+| `Backend/src/routes/todos.js` | CRUD `/todos` — child restricted to own tasks + toggle-only |
+| `Backend/src/routes/family.js` | `GET/PUT /family` — name + member count |
+
+**API endpoints summary:**
+```
+POST   /api/auth/setup       first-run admin creation + family name
+POST   /api/auth/login       memberId + PIN → JWT token
+POST   /api/auth/logout      stateless (client discards token)
+GET    /api/auth/me          current session member info
+
+GET    /api/members          list all members (authenticated)
+POST   /api/members          create member (admin only)
+PUT    /api/members/:id      update name/role/PIN (admin only)
+DELETE /api/members/:id      delete member (admin only; not self)
+
+GET    /api/todos            list todos (child sees only their own)
+POST   /api/todos            create todo (child creates as suggestion)
+PUT    /api/todos/:id        update todo (child can only toggle isDone)
+DELETE /api/todos/:id        delete todo (parent/admin only)
+
+GET    /api/family           family name + memberCount + hasAdmin
+PUT    /api/family           update family name (admin only)
+
+GET    /health               server health check
+```
+
+**Schema mirrors Flutter models exactly:**
+- `todos` table: all 11 fields from `Todo` HiveObject (id, title, isDone, createdAt, dueDate, colorValue, assignedTo, reward, starRating, isSuggestion, completedAt)
+- `members` table: all 4 fields from `FamilyMember` (id, name, role, pin — hashed in DB)
+- `family` table: single-row family settings (name)
+
+**Key decisions:**
+- `node:sqlite` chosen over `better-sqlite3` — built-in, zero compilation, stable in Node 22.5+; `better-sqlite3` fails on Node 25 (C++20 required by V8 headers)
+- PINs hashed with bcrypt (salt rounds: 10) — Flutter Hive stores plain 4-digit strings; backend is a security boundary
+- JWT payload: `{ id, name, role }` — role included so middleware doesn't need a DB hit per request
+- Child access rule: `GET /todos` filters to `assigned_to = req.user.id`; `PUT /todos/:id` only allows toggling `isDone`; `POST /todos` forces `is_suggestion = 1`
+- Admin cannot delete own account (safety guard against lockout)
+- To run: `cp .env.example .env`, edit JWT_SECRET, then `npm start`
