@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 import 'models/todo_model.dart';
@@ -13,8 +15,14 @@ import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'services/notification_service.dart';
 
+// Keep semantics alive for the lifetime of the app (enables E2E testing on web).
+SemanticsHandle? _webSemanticsHandle;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (kIsWeb) {
+    _webSemanticsHandle = SemanticsBinding.instance.ensureSemantics();
+  }
   await Hive.initFlutter();
   Hive.registerAdapter(TodoAdapter());
   Hive.registerAdapter(FamilyMemberAdapter());

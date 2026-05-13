@@ -2,18 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/colors.dart';
+import '../../../core/utils/todo_queries.dart';
 import '../../../models/todo_model.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/todo_provider.dart';
 import '../../../widgets/todo_card.dart';
 
 class TaskListView extends StatefulWidget {
-  final String? effectiveMemberId;
+  final Set<String> effectiveMemberIds; // empty = all members
   final int filter; // 0=All  1=Today (overdue+today)  2=Pending (active only)
 
   const TaskListView({
     super.key,
-    required this.effectiveMemberId,
+    required this.effectiveMemberIds,
     this.filter = 0,
   });
 
@@ -30,42 +31,17 @@ class _TaskListViewState extends State<TaskListView> {
     final auth = context.watch<AuthProvider>();
     final isChild = auth.isChild;
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
 
-    final active = todos.activeTodosForMember(widget.effectiveMemberId);
-    final completed =
-        todos.completedTodosForMember(widget.effectiveMemberId);
+    final memberIds =
+        widget.effectiveMemberIds.isEmpty ? null : widget.effectiveMemberIds;
+    final active = todos.activeTodosForMember(memberIds);
+    final completed = todos.completedTodosForMember(memberIds);
     // Suggestions shown to parent/admin only, and only in the all-members view
-    final suggested =
-        auth.canManageTasks && widget.effectiveMemberId == null
-            ? todos.suggestedTodos
-            : <Todo>[];
+    final suggested = auth.canManageTasks && widget.effectiveMemberIds.isEmpty
+        ? todos.suggestedTodos
+        : <Todo>[];
 
-    // Bucket and sort active tasks
-    final overdue = active
-        .where((t) =>
-            t.dueDate != null &&
-            _dayOf(t.dueDate!).isBefore(today))
-        .toList()
-      ..sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
-
-    final todayTasks = active
-        .where((t) =>
-            t.dueDate != null && _isToday(t.dueDate!, now))
-        .toList()
-      ..sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
-
-    final upcoming = active
-        .where((t) =>
-            t.dueDate == null ||
-            _dayOf(t.dueDate!).isAfter(today))
-        .toList()
-      ..sort((a, b) {
-        if (a.dueDate == null && b.dueDate == null) return 0;
-        if (a.dueDate == null) return 1;
-        if (b.dueDate == null) return -1;
-        return a.dueDate!.compareTo(b.dueDate!);
-      });
+    final sections = TodoQueries.bucketActiveByDueDate(active, now: now);
 
     final total = active.length + completed.length;
     final hasAnything = total > 0 || suggested.isNotEmpty;
@@ -81,9 +57,9 @@ class _TaskListViewState extends State<TaskListView> {
       return _EmptyTaskList(isChild: isChild);
     }
 
-    final visibleOverdue = overdue; // always visible
-    final visibleToday = todayTasks; // always visible
-    final visibleUpcoming = showUpcoming ? upcoming : <Todo>[];
+    final visibleOverdue = sections.overdue; // always visible
+    final visibleToday = sections.dueToday; // always visible
+    final visibleUpcoming = showUpcoming ? sections.upcoming : <Todo>[];
     final visibleCompleted = showCompleted ? completed : <Todo>[];
     final visibleSuggested = showSuggested ? suggested : <Todo>[];
 
@@ -110,9 +86,7 @@ class _TaskListViewState extends State<TaskListView> {
               ),
               const SizedBox(height: 16),
               Text(
-                filter == 1
-                    ? 'Nothing due today!'
-                    : 'All caught up!',
+                filter == 1 ? 'Nothing due today!' : 'All caught up!',
                 style: GoogleFonts.poppins(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -201,14 +175,6 @@ class _TaskListViewState extends State<TaskListView> {
       ],
     );
   }
-
-  static DateTime _dayOf(DateTime dt) =>
-      DateTime(dt.year, dt.month, dt.day);
-
-  static bool _isToday(DateTime date, DateTime now) =>
-      date.year == now.year &&
-      date.month == now.month &&
-      date.day == now.day;
 }
 
 // ── Section header ─────────────────────────────────────────────────
@@ -233,8 +199,7 @@ class _SectionHeader extends StatelessWidget {
           Container(
             width: 8,
             height: 8,
-            decoration:
-                BoxDecoration(color: color, shape: BoxShape.circle),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 8),
           Text(
@@ -248,8 +213,7 @@ class _SectionHeader extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(999),
@@ -296,8 +260,8 @@ class _CompletedHeader extends StatelessWidget {
             Container(
               width: 8,
               height: 8,
-              decoration: const BoxDecoration(
-                  color: _green, shape: BoxShape.circle),
+              decoration:
+                  const BoxDecoration(color: _green, shape: BoxShape.circle),
             ),
             const SizedBox(width: 8),
             Text(
@@ -311,8 +275,7 @@ class _CompletedHeader extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 7, vertical: 1),
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
               decoration: BoxDecoration(
                 color: _green.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(999),
@@ -372,8 +335,8 @@ class _EmptyTaskList extends StatelessWidget {
               isChild
                   ? 'Check back later — enjoy the break!'
                   : 'All clear! Add a task to get started.',
-              style: GoogleFonts.poppins(
-                  fontSize: 14, color: AppColors.subtitle),
+              style:
+                  GoogleFonts.poppins(fontSize: 14, color: AppColors.subtitle),
               textAlign: TextAlign.center,
             ),
           ],
@@ -394,8 +357,8 @@ class _AllDoneBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF52C78B).withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color: const Color(0xFF52C78B).withValues(alpha: 0.2)),
+        border:
+            Border.all(color: const Color(0xFF52C78B).withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [

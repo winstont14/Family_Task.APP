@@ -1,30 +1,48 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:google_fonts/google_fonts.dart';
+import 'package:hive/hive.dart';
+import 'package:todo_app/core/utils/constants.dart';
 import 'package:todo_app/main.dart';
+import 'package:todo_app/models/family_member.dart';
+import 'package:todo_app/models/todo_model.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
+  late Directory hiveDirectory;
+
+  setUp(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    GoogleFonts.config.allowRuntimeFetching = false;
+
+    hiveDirectory = await Directory.systemTemp.createTemp('todo_app_test_');
+    Hive.init(hiveDirectory.path);
+
+    if (!Hive.isAdapterRegistered(0)) {
+      Hive.registerAdapter(TodoAdapter());
+    }
+    if (!Hive.isAdapterRegistered(1)) {
+      Hive.registerAdapter(FamilyMemberAdapter());
+    }
+
+    await Hive.openBox<Todo>(AppConstants.todosBox);
+    await Hive.openBox<FamilyMember>(AppConstants.membersBox);
+    await Hive.openBox(AppConstants.settingsBox);
+  });
+
+  tearDown(() async {
+    await Hive.close();
+    if (await hiveDirectory.exists()) {
+      await hiveDirectory.delete(recursive: true);
+    }
+  });
+
+  testWidgets('shows onboarding when no admin has been created',
+      (WidgetTester tester) async {
     await tester.pumpWidget(const MyApp());
-
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Name your workspace'), findsOneWidget);
+    expect(find.text('Dashboard'), findsNothing);
   });
 }

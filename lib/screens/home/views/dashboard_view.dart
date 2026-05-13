@@ -2,18 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/colors.dart';
-import '../../../models/todo_model.dart';
+import '../../../core/utils/todo_queries.dart';
 import '../../../providers/auth_provider.dart';
 import '../../../providers/family_provider.dart';
 import '../../../providers/todo_provider.dart';
-import '../family_sheet.dart';
 import '../widgets/dashboard_pending_card.dart';
 import '../widgets/dashboard_progress_card.dart';
-import '../widgets/dashboard_quick_actions.dart';
 import '../widgets/dashboard_task_row.dart';
 
 class DashboardView extends StatelessWidget {
-  final VoidCallback onAddTask;
+  final VoidCallback onAddTask; // kept for EmptySection
   final void Function(String memberId) onViewMember;
 
   const DashboardView({
@@ -31,34 +29,22 @@ class DashboardView extends StatelessWidget {
     final now = DateTime.now();
 
     final myId = isChild ? auth.currentUser?.id : null;
+    final myIdSet = myId != null ? {myId} : null;
     final allActive =
-        isChild ? todos.activeTodosForMember(myId) : todos.activeTodos;
+        isChild ? todos.activeTodosForMember(myIdSet) : todos.activeTodos;
     final allDone =
-        isChild ? todos.completedTodosForMember(myId) : todos.completedTodos;
+        isChild ? todos.completedTodosForMember(myIdSet) : todos.completedTodos;
     final total = allActive.length + allDone.length;
 
     final doneToday = allDone
         .where((t) =>
-            t.completedAt != null && _isToday(t.completedAt!, now))
+            t.completedAt != null && TodoQueries.isSameDay(t.completedAt!, now))
         .length;
 
     final pending = todos.suggestedTodos;
 
-    // Sort: overdue → today → future → no date
-    final sortedActive = [...allActive]..sort((a, b) {
-        int p(Todo t) {
-          if (t.dueDate == null) return 3;
-          if (t.dueDate!.isBefore(now)) return 0;
-          if (_isToday(t.dueDate!, now)) return 1;
-          return 2;
-        }
-        final cmp = p(a).compareTo(p(b));
-        if (cmp != 0) return cmp;
-        if (a.dueDate != null && b.dueDate != null) {
-          return a.dueDate!.compareTo(b.dueDate!);
-        }
-        return b.createdAt.compareTo(a.createdAt);
-      });
+    final sortedActive =
+        TodoQueries.sortedByDashboardPriority(allActive, now: now);
 
     final myXp = isChild ? todos.xpForMember(auth.currentUser?.id) : null;
 
@@ -78,8 +64,7 @@ class DashboardView extends StatelessWidget {
         if (!isChild && pending.isNotEmpty) ...[
           _SectionLabel(title: 'Needs Review', count: pending.length),
           const SizedBox(height: 10),
-          ...pending.map((t) =>
-              DashboardPendingCard(todo: t, family: family)),
+          ...pending.map((t) => DashboardPendingCard(todo: t, family: family)),
           const SizedBox(height: 20),
         ],
 
@@ -112,37 +97,10 @@ class DashboardView extends StatelessWidget {
             ),
         ],
 
-        // 4. Quick actions (parent/admin only)
-        if (auth.canManageTasks) ...[
-          const SizedBox(height: 24),
-          DashboardQuickActions(
-            onAddTask: onAddTask,
-            onManageFamily: auth.canManageFamily
-                ? () => _showFamilySheet(context)
-                : null,
-          ),
-        ],
       ],
     );
   }
 
-  static bool _isToday(DateTime date, DateTime now) =>
-      date.year == now.year &&
-      date.month == now.month &&
-      date.day == now.day;
-
-  void _showFamilySheet(BuildContext context) {
-    final family = context.read<FamilyProvider>();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => ChangeNotifierProvider.value(
-        value: family,
-        child: const FamilySheet(),
-      ),
-    );
-  }
 }
 
 // ── Section label ─────────────────────────────────────────────────────
@@ -168,8 +126,7 @@ class _SectionLabel extends StatelessWidget {
         if (count != null && count! > 0) ...[
           const SizedBox(width: 8),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(999),
@@ -217,8 +174,7 @@ class _EmptySection extends StatelessWidget {
             isChild
                 ? 'Check back later or suggest a task'
                 : 'Tap Add Task to get started',
-            style: GoogleFonts.poppins(
-                fontSize: 13, color: AppColors.subtitle),
+            style: GoogleFonts.poppins(fontSize: 13, color: AppColors.subtitle),
           ),
           if (canAdd && onAddTask != null) ...[
             const SizedBox(height: 16),

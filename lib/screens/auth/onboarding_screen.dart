@@ -7,8 +7,18 @@ import '../../providers/auth_provider.dart';
 import '../../providers/family_provider.dart';
 
 const _kFamilyIcons = [
-  '🏠', '🌳', '⭐', '🎨', '🏡', '🌈',
-  '🦁', '🌻', '🐾', '🎯', '🚀', '❤️',
+  '🏠',
+  '🌳',
+  '⭐',
+  '🎨',
+  '🏡',
+  '🌈',
+  '🦁',
+  '🌻',
+  '🐾',
+  '🎯',
+  '🚀',
+  '❤️',
 ];
 
 // ─────────────────────────── Data class ─────────────────────────────
@@ -131,8 +141,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ctrl: _familyNameCtrl,
                     icon: _selectedIcon,
                     hasError: _familyNameError,
-                    onChanged: (_) =>
-                        setState(() => _familyNameError = false),
+                    onChanged: (_) => setState(() => _familyNameError = false),
                   ),
                   // Page 2 — Your name + PIN
                   _Page2(
@@ -140,26 +149,21 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     pinCtrl: _pinCtrl,
                     nameError: _nameError,
                     pinError: _pinError,
-                    onNameChanged: (_) =>
-                        setState(() => _nameError = false),
-                    onPinChanged: (_) =>
-                        setState(() => _pinError = false),
+                    onNameChanged: (_) => setState(() => _nameError = false),
+                    onPinChanged: (_) => setState(() => _pinError = false),
                   ),
                   // Page 3 — Family icon
                   _Page3(
                     selectedIcon: _selectedIcon,
-                    onIconChanged: (ic) =>
-                        setState(() => _selectedIcon = ic),
+                    onIconChanged: (ic) => setState(() => _selectedIcon = ic),
                   ),
                   // Page 4 — Add family members
                   _Page4(
-                    adminName: _nameCtrl.text.isEmpty
-                        ? 'You'
-                        : _nameCtrl.text.trim(),
+                    adminName:
+                        _nameCtrl.text.isEmpty ? 'You' : _nameCtrl.text.trim(),
                     members: _newMembers,
                     onAdd: (m) => setState(() => _newMembers.add(m)),
-                    onRemove: (i) =>
-                        setState(() => _newMembers.removeAt(i)),
+                    onRemove: (i) => setState(() => _newMembers.removeAt(i)),
                   ),
                 ],
               ),
@@ -198,9 +202,8 @@ class _ProgressBar extends StatelessWidget {
               width: i == current ? 28 : 8,
               height: 8,
               decoration: BoxDecoration(
-                color: i <= current
-                    ? AppColors.primary
-                    : const Color(0xFFD6D6D6),
+                color:
+                    i <= current ? AppColors.primary : const Color(0xFFD6D6D6),
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
@@ -239,16 +242,14 @@ class _NavBar extends StatelessWidget {
               child: OutlinedButton(
                 onPressed: onBack,
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(
-                      color: Color(0xFF4a4a4a), width: 1.2),
+                  side: const BorderSide(color: Color(0xFF4a4a4a), width: 1.2),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 child: Text('Back',
                     style: GoogleFonts.poppins(
-                        fontSize: 15,
-                        color: const Color(0xFF4a4a4a))),
+                        fontSize: 15, color: const Color(0xFF4a4a4a))),
               ),
             ),
             const SizedBox(width: 12),
@@ -332,7 +333,7 @@ class _Page1 extends StatelessWidget {
               style: GoogleFonts.poppins(
                   fontSize: 13, color: const Color(0xFF8a8a8a))),
           const SizedBox(height: 28),
-          _Label('FAMILY NAME'),
+          const _Label('FAMILY NAME'),
           const SizedBox(height: 8),
           _Field(
             controller: ctrl,
@@ -413,7 +414,7 @@ class _Page2 extends StatelessWidget {
               style: GoogleFonts.poppins(
                   fontSize: 13, color: const Color(0xFF8a8a8a))),
           const SizedBox(height: 28),
-          _Label('YOUR NAME'),
+          const _Label('YOUR NAME'),
           const SizedBox(height: 8),
           _Field(
             controller: nameCtrl,
@@ -425,7 +426,7 @@ class _Page2 extends StatelessWidget {
             onChanged: onNameChanged,
           ),
           const SizedBox(height: 24),
-          _Label('PIN (OPTIONAL)'),
+          const _Label('PIN (OPTIONAL)'),
           const SizedBox(height: 4),
           Text('Protects your Admin profile — exactly 4 digits',
               style: GoogleFonts.poppins(
@@ -635,7 +636,7 @@ class _Page4State extends State<_Page4> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _Label('ADD A MEMBER'),
+                const _Label('ADD A MEMBER'),
                 const SizedBox(height: 12),
                 _Field(
                   controller: _nameCtrl,
@@ -685,8 +686,7 @@ class _Page4State extends State<_Page4> {
                     icon: const Icon(Icons.add_rounded, size: 18),
                     label: Text('Add Member',
                         style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600)),
+                            fontSize: 14, fontWeight: FontWeight.w600)),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(
                           color: AppColors.primary, width: 1.4),
@@ -743,8 +743,7 @@ class _MemberChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-            color: fg.withValues(alpha: 0.3), width: 1),
+        border: Border.all(color: fg.withValues(alpha: 0.3), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -753,9 +752,7 @@ class _MemberChip extends StatelessWidget {
           const SizedBox(width: 5),
           Text(name,
               style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: fg)),
+                  fontSize: 12, fontWeight: FontWeight.w600, color: fg)),
           if (onRemove != null) ...[
             const SizedBox(width: 4),
             GestureDetector(
@@ -788,8 +785,7 @@ class _RoleToggle extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: selected
               ? AppColors.primary.withValues(alpha: 0.1)
@@ -805,11 +801,8 @@ class _RoleToggle extends StatelessWidget {
         child: Text(label,
             style: GoogleFonts.poppins(
                 fontSize: 13,
-                fontWeight:
-                    selected ? FontWeight.w600 : FontWeight.normal,
-                color: selected
-                    ? AppColors.primary
-                    : const Color(0xFF4a4a4a))),
+                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                color: selected ? AppColors.primary : const Color(0xFF4a4a4a))),
       ),
     );
   }
@@ -876,22 +869,17 @@ class _Field extends StatelessWidget {
           ? [FilteringTextInputFormatter.digitsOnly]
           : null,
       onChanged: onChanged,
-      style: GoogleFonts.poppins(
-          fontSize: 15, color: const Color(0xFF1f1f1f)),
+      style: GoogleFonts.poppins(fontSize: 15, color: const Color(0xFF1f1f1f)),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: GoogleFonts.poppins(
-            fontSize: 14, color: const Color(0xFF8a8a8a)),
+        hintStyle:
+            GoogleFonts.poppins(fontSize: 14, color: const Color(0xFF8a8a8a)),
         prefixIcon: Icon(prefixIcon,
-            color: hasError
-                ? Colors.redAccent
-                : const Color(0xFF8a8a8a),
+            color: hasError ? Colors.redAccent : const Color(0xFF8a8a8a),
             size: 19),
         errorText: errorText,
         errorStyle: GoogleFonts.poppins(
-            fontSize: 11,
-            color: Colors.redAccent,
-            fontWeight: FontWeight.w500),
+            fontSize: 11, color: Colors.redAccent, fontWeight: FontWeight.w500),
         filled: true,
         fillColor: Colors.white,
         counterText: '',

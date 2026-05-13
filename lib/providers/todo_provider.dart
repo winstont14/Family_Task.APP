@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/utils/todo_queries.dart';
 import '../models/todo_model.dart';
 import '../services/local_storage_service.dart';
 import '../services/notification_service.dart';
@@ -7,32 +8,18 @@ class TodoProvider extends ChangeNotifier {
   final LocalStorageService _storage = LocalStorageService();
   List<Todo> _todos = [];
 
-  List<Todo> get activeTodos =>
-      _todos.where((t) => !t.isDone && t.isSuggestion != true).toList()
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  List<Todo> get activeTodos => TodoQueries.sortedActiveTodos(_todos);
 
-  List<Todo> get completedTodos =>
-      _todos.where((t) => t.isDone).toList()
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  List<Todo> get completedTodos => TodoQueries.sortedCompletedTodos(_todos);
 
-  List<Todo> get suggestedTodos =>
-      _todos.where((t) => t.isSuggestion == true && !t.isDone).toList()
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  List<Todo> get suggestedTodos => TodoQueries.sortedSuggestedTodos(_todos);
 
-  List<Todo> activeTodosForMember(String? memberId) {
-    if (memberId == null) return activeTodos;
-    return _todos
-        .where((t) => !t.isDone && t.isSuggestion != true && t.assignedTo == memberId)
-        .toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  List<Todo> activeTodosForMember(Set<String>? memberIds) {
+    return TodoQueries.sortedActiveTodos(_todos, memberIds: memberIds);
   }
 
-  List<Todo> completedTodosForMember(String? memberId) {
-    if (memberId == null) return completedTodos;
-    return _todos
-        .where((t) => t.isDone && t.assignedTo == memberId)
-        .toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  List<Todo> completedTodosForMember(Set<String>? memberIds) {
+    return TodoQueries.sortedCompletedTodos(_todos, memberIds: memberIds);
   }
 
   // ── Streak ────────────────────────────────────────────────────────
@@ -138,8 +125,7 @@ class TodoProvider extends ChangeNotifier {
     todo.completedAt = todo.isDone ? DateTime.now() : null;
     if (todo.isDone) {
       await NotificationService.cancelNotification(todo.id);
-    } else if (todo.dueDate != null &&
-        todo.dueDate!.isAfter(DateTime.now())) {
+    } else if (todo.dueDate != null && todo.dueDate!.isAfter(DateTime.now())) {
       await NotificationService.scheduleTaskNotification(
         id: todo.id,
         title: todo.title,

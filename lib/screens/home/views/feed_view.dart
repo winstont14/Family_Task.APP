@@ -519,7 +519,7 @@ class _Badge extends StatelessWidget {
   }
 }
 
-// ── Chrome ──────────────────────────────────────────────────────────
+// ── Filter bar (segmented control) ────────────────────────────────
 
 class _FilterBar extends StatelessWidget {
   final int selected;
@@ -532,66 +532,52 @@ class _FilterBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      child: Row(
-        children: [
-          for (int i = 0; i < _labels.length; i++) ...[
-            if (i > 0) const SizedBox(width: 8),
-            _FilterChip(
-              label: _labels[i],
-              selected: selected == i,
-              onTap: () => onSelect(i),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _FilterChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Container(
+        padding: const EdgeInsets.all(3),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected
-                ? AppColors.primary
-                : AppColors.subtitle.withValues(alpha: 0.2),
-          ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : [],
+          color: const Color(0xFFF0F2F5),
+          borderRadius: BorderRadius.circular(10),
         ),
-        child: Text(
-          label,
-          style: GoogleFonts.poppins(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: selected ? Colors.white : AppColors.subtitle,
-          ),
+        child: Row(
+          children: List.generate(_labels.length, (i) {
+            final isSelected = selected == i;
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => onSelect(i),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected ? Colors.white : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ]
+                        : [],
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    _labels[i],
+                    style: GoogleFonts.poppins(
+                      fontSize: 13,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.w500,
+                      color: isSelected
+                          ? AppColors.primary
+                          : AppColors.subtitle,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
         ),
       ),
     );

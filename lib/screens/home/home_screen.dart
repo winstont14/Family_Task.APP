@@ -22,7 +22,11 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String? _selectedMemberId;
+  // Dashboard uses single-select member filter
+  String? _dashboardMemberId;
+  // Task list uses multi-select member filter
+  Set<String> _taskMemberIds = {};
+
   int _navIndex = 0;
   int _taskFilter = 0; // 0=All  1=Today  2=Pending
 
@@ -31,15 +35,23 @@ class _HomeScreenState extends State<HomeScreen> {
     final auth = context.watch<AuthProvider>();
     final family = context.watch<FamilyProvider>();
 
-    final effectiveMemberId =
-        auth.isChild ? auth.currentUser?.id : _selectedMemberId;
-
-    if (_selectedMemberId != null &&
-        family.findById(_selectedMemberId!) == null) {
-      _selectedMemberId = null;
+    // Clean up stale members
+    if (_dashboardMemberId != null &&
+        family.findById(_dashboardMemberId!) == null) {
+      _dashboardMemberId = null;
     }
+    _taskMemberIds.removeWhere((id) => family.findById(id) == null);
 
     final isChild = auth.isChild;
+
+    // effectiveMemberId for dashboard/home header (single String?)
+    final dashboardEffectiveId =
+        isChild ? auth.currentUser?.id : _dashboardMemberId;
+
+    // effectiveMemberIds for task list (Set<String>)
+    final taskEffectiveIds = isChild
+        ? (auth.currentUser?.id != null ? {auth.currentUser!.id} : <String>{})
+        : _taskMemberIds;
 
     // Clamp index so a child (2 tabs) never holds index 2
     final safeIndex = isChild ? _navIndex.clamp(0, 1) : _navIndex;
@@ -53,28 +65,28 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Family name bar — always visible on every tab
+            HomeHeader(
+              selectedMemberId: _dashboardMemberId,
+              effectiveMemberId: dashboardEffectiveId,
+              showFilters: false,
+              onMemberSelect: (id) =>
+                  setState(() => _dashboardMemberId = id),
+              onManageFamily:
+                  auth.canManageFamily ? _showFamilySheet : null,
+              onLogout: _logout,
+            ),
+            // Task list filters — only on the list tab
             if (safeIndex == 1)
               TaskListHeader(
-                selectedMemberId: _selectedMemberId,
-                effectiveMemberId: effectiveMemberId,
+                selectedMemberIds: _taskMemberIds,
+                effectiveMemberIds: taskEffectiveIds,
                 statusFilter: _taskFilter,
                 onStatusFilter: (f) => setState(() => _taskFilter = f),
-                onMemberSelect: (id) =>
-                    setState(() => _selectedMemberId = id),
+                onMembersChanged: (ids) =>
+                    setState(() => _taskMemberIds = ids),
                 onManageFamily:
                     auth.canManageFamily ? _showFamilySheet : null,
-                onAddTask: () => _openAddTodo(),
-              )
-            else
-              HomeHeader(
-                selectedMemberId: _selectedMemberId,
-                effectiveMemberId: effectiveMemberId,
-                showFilters: false,
-                onMemberSelect: (id) =>
-                    setState(() => _selectedMemberId = id),
-                onManageFamily:
-                    auth.canManageFamily ? _showFamilySheet : null,
-                onLogout: _logout,
               ),
             Expanded(
               child: IndexedStack(
@@ -83,12 +95,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   DashboardView(
                     onAddTask: _openAddTodo,
                     onViewMember: (id) => setState(() {
-                      _selectedMemberId = id;
+                      _taskMemberIds = {id};
                       _navIndex = 1;
                     }),
                   ),
                   TaskListView(
-                    effectiveMemberId: effectiveMemberId,
+                    effectiveMemberIds: taskEffectiveIds,
                     filter: _taskFilter,
                   ),
                   if (!isChild) const FeedView(),
@@ -123,7 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
         ],
       ),
-      floatingActionButton: (auth.canManageTasks && safeIndex != 1)
+      floatingActionButton: auth.canManageTasks
           ? FloatingActionButton.extended(
               onPressed: _openAddTodo,
               icon: const Icon(Icons.add_rounded, size: 28),

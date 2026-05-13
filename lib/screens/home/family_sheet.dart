@@ -234,9 +234,9 @@ class _MemberRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (String roleIcon, String label) = switch (role) {
-      'admin' => ('👑', 'Admin'),
-      'parent' => ('🧑', 'Parent'),
-      _ => ('👧', 'Child'),
+      'admin' => ('💁🏻', 'Admin'),
+      'parent' => ('🫂', 'Parent'),
+      _ => ('🐻', 'Child'),
     };
 
     return Padding(

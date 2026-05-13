@@ -30,8 +30,10 @@ class _GroupListViewState extends State<GroupListView> {
     for (final m in family.members) {
       groups[m.id] = all.where((t) => t.assignedTo == m.id).toList();
     }
-    final unassigned = all.where((t) => t.assignedTo == null ||
-        family.findById(t.assignedTo!) == null).toList();
+    final unassigned = all
+        .where((t) =>
+            t.assignedTo == null || family.findById(t.assignedTo!) == null)
+        .toList();
 
     if (all.isEmpty) {
       return Center(
@@ -174,9 +176,7 @@ class _GroupSection extends StatelessWidget {
                 color: headerColor.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.vertical(
                   top: const Radius.circular(14),
-                  bottom: collapsed
-                      ? const Radius.circular(14)
-                      : Radius.zero,
+                  bottom: collapsed ? const Radius.circular(14) : Radius.zero,
                 ),
               ),
               child: Row(
@@ -226,8 +226,8 @@ class _GroupSection extends StatelessWidget {
                   ),
                   // Count pill
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: headerColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(999),
@@ -244,7 +244,7 @@ class _GroupSection extends StatelessWidget {
                   AnimatedRotation(
                     turns: collapsed ? -0.25 : 0,
                     duration: const Duration(milliseconds: 200),
-                    child: Icon(Icons.keyboard_arrow_down_rounded,
+                    child: const Icon(Icons.keyboard_arrow_down_rounded,
                         color: AppColors.subtitle, size: 20),
                   ),
                 ],
@@ -253,8 +253,7 @@ class _GroupSection extends StatelessWidget {
           ),
           // Task rows
           if (!collapsed) ...[
-            for (final todo in [...active, ...done])
-              _TaskRow(todo: todo),
+            for (final todo in [...active, ...done]) _TaskRow(todo: todo),
           ],
         ],
       ),
@@ -287,9 +286,7 @@ class _TaskRow extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: isDone ? AppColors.primary : Colors.transparent,
                 border: Border.all(
-                  color: isDone
-                      ? AppColors.primary
-                      : const Color(0xFFB0B0B0),
+                  color: isDone ? AppColors.primary : const Color(0xFFB0B0B0),
                   width: 1.8,
                 ),
               ),
@@ -306,19 +303,15 @@ class _TaskRow extends StatelessWidget {
                     todo.title,
                     style: GoogleFonts.poppins(
                       fontSize: 13,
-                      color: isDone
-                          ? AppColors.subtitle
-                          : AppColors.text,
-                      decoration:
-                          isDone ? TextDecoration.lineThrough : null,
+                      color: isDone ? AppColors.subtitle : AppColors.text,
+                      decoration: isDone ? TextDecoration.lineThrough : null,
                     ),
                   ),
                   if (todo.dueDate != null)
                     Text(
                       DateFormat('MMM d').format(todo.dueDate!),
                       style: GoogleFonts.poppins(
-                          fontSize: 11,
-                          color: _dueDateColor(todo.dueDate!)),
+                          fontSize: 11, color: _dueDateColor(todo.dueDate!)),
                     ),
                 ],
               ),

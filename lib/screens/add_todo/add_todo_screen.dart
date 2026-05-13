@@ -244,7 +244,7 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
                     const SizedBox(height: 14),
 
                     // ── Difficulty stars ───────────────────────────
-                    _FieldLabel(label: 'Difficulty'),
+                    const _FieldLabel(label: 'Difficulty'),
                     const SizedBox(height: 8),
                     _StarRatingPicker(
                       value: _starRating,
@@ -253,7 +253,7 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
                     const SizedBox(height: 14),
 
                     // ── Reward ─────────────────────────────────────
-                    _FieldLabel(label: 'Reward 🎁 (optional)'),
+                    const _FieldLabel(label: 'Reward 🎁 (optional)'),
                     const SizedBox(height: 8),
                     TextField(
                       controller: _rewardCtrl,
@@ -293,7 +293,7 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const SizedBox(height: 14),
-                            _FieldLabel(label: 'Assign to'),
+                            const _FieldLabel(label: 'Assign to'),
                             const SizedBox(height: 10),
                             Wrap(
                               spacing: 10,
@@ -307,8 +307,8 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
                                       setState(() => _assignedTo = null),
                                 ),
                                 ...family.members.map((m) {
-                                  final color = Color(
-                                      family.colorValueForMember(m.id));
+                                  final color =
+                                      Color(family.colorValueForMember(m.id));
                                   return _AssignChip(
                                     label: m.name,
                                     initial: m.name[0].toUpperCase(),
@@ -316,8 +316,8 @@ class _AddTodoScreenState extends State<AddTodoScreen> {
                                     role: m.role,
                                     isSelected: _assignedTo == m.id,
                                     color: color,
-                                    onTap: () => setState(
-                                        () => _assignedTo = m.id),
+                                    onTap: () =>
+                                        setState(() => _assignedTo = m.id),
                                   );
                                 }),
                               ],
@@ -446,7 +446,7 @@ class _SuggestToggle extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Text('💡', style: const TextStyle(fontSize: 20)),
+            const Text('💡', style: TextStyle(fontSize: 20)),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -457,9 +457,7 @@ class _SuggestToggle extends StatelessWidget {
                     style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: value
-                          ? const Color(0xFFCC7700)
-                          : AppColors.text,
+                      color: value ? const Color(0xFFCC7700) : AppColors.text,
                     ),
                   ),
                   Text(
@@ -516,17 +514,14 @@ class _AssignChip extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
         width: 72,
-        padding:
-            const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
         decoration: BoxDecoration(
-          color: isSelected
-              ? color.withValues(alpha: 0.1)
-              : AppColors.background,
+          color:
+              isSelected ? color.withValues(alpha: 0.1) : AppColors.background,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isSelected
-                ? color
-                : AppColors.subtitle.withValues(alpha: 0.18),
+            color:
+                isSelected ? color : AppColors.subtitle.withValues(alpha: 0.18),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -542,8 +537,7 @@ class _AssignChip extends StatelessWidget {
                   height: 38,
                   decoration: BoxDecoration(
                     color: initial != null
-                        ? color.withValues(
-                            alpha: isSelected ? 0.22 : 0.13)
+                        ? color.withValues(alpha: isSelected ? 0.22 : 0.13)
                         : AppColors.subtitle.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
@@ -574,8 +568,7 @@ class _AssignChip extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: color,
                         shape: BoxShape.circle,
-                        border: Border.all(
-                            color: Colors.white, width: 1.5),
+                        border: Border.all(color: Colors.white, width: 1.5),
                       ),
                       child: const Icon(Icons.check_rounded,
                           size: 9, color: Colors.white),
@@ -588,21 +581,18 @@ class _AssignChip extends StatelessWidget {
               label,
               style: GoogleFonts.poppins(
                 fontSize: 11,
-                fontWeight:
-                    isSelected ? FontWeight.w700 : FontWeight.w500,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected ? color : AppColors.text,
               ),
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            if (role != null) ...[
-              const SizedBox(height: 2),
-              Text(
-                _roleEmoji(role!),
-                style: const TextStyle(fontSize: 10),
-              ),
-            ],
+            const SizedBox(height: 2),
+            Text(
+              role != null ? _roleEmoji(role!) : '',
+              style: const TextStyle(fontSize: 10),
+            ),
           ],
         ),
       ),
@@ -625,8 +615,7 @@ class _ColorPicker extends StatelessWidget {
       children: [
         Text(
           'Card colour',
-          style:
-              GoogleFonts.poppins(fontSize: 13, color: AppColors.subtitle),
+          style: GoogleFonts.poppins(fontSize: 13, color: AppColors.subtitle),
         ),
         const SizedBox(height: 8),
         Row(
@@ -695,8 +684,7 @@ class _DueDatePicker extends StatelessWidget {
               : AppColors.background,
           borderRadius: BorderRadius.circular(12),
           border: hasDate
-              ? Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.4))
+              ? Border.all(color: AppColors.primary.withValues(alpha: 0.4))
               : null,
         ),
         child: Row(
@@ -714,10 +702,8 @@ class _DueDatePicker extends StatelessWidget {
                     : 'Set deadline (optional)',
                 style: GoogleFonts.poppins(
                   fontSize: 15,
-                  color:
-                      hasDate ? AppColors.primary : AppColors.subtitle,
-                  fontWeight:
-                      hasDate ? FontWeight.w500 : FontWeight.normal,
+                  color: hasDate ? AppColors.primary : AppColors.subtitle,
+                  fontWeight: hasDate ? FontWeight.w500 : FontWeight.normal,
                 ),
               ),
             ),
